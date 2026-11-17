@@ -1,0 +1,1133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Scouting Simulator</title>
+<style>
+:root{
+  --page:#f4f1ea; --paper:#fcfcfb; --ink:#0b0b0b; --ink2:#52514e; --muted:#898781;
+  --grid:#e1e0d9; --axis:#c3c2b7; --ring:rgba(11,11,11,.10);
+  --blue:#2a78d6; --blue-d:#184f95; --orange:#eb6834; --red:#e34948;
+  --b100:#cde2fb; --b200:#9ec5f4; --b300:#6da7ec; --b450:#2a78d6; --b550:#1c5cab; --b650:#104281;
+  --cond:"Avenir Next Condensed","DIN Condensed","DIN Alternate","Arial Narrow",system-ui,sans-serif;
+  --sans:"Avenir Next",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--page);color:var(--ink);font-family:var(--sans);font-size:14px;padding:28px 28px 72px;
+  background-image:radial-gradient(rgba(11,11,11,.035) 1px,transparent 1px);background-size:14px 14px}
+.wrap{max-width:1440px;margin:0 auto}
+header.top{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;flex-wrap:wrap;border-bottom:3px solid var(--ink);padding-bottom:14px}
+.eyebrow{font-family:var(--cond);text-transform:uppercase;letter-spacing:.14em;font-size:12px;font-weight:700;color:var(--orange)}
+h1{font-family:var(--cond);font-weight:800;font-size:44px;line-height:.95;margin:4px 0 0;text-transform:uppercase;letter-spacing:.01em}
+.sub{color:var(--ink2);max-width:620px;margin:8px 0 0;line-height:1.45}
+.sample{font-family:var(--cond);text-transform:uppercase;letter-spacing:.1em;font-size:11px;font-weight:700;border:1.5px dashed var(--ink2);color:var(--ink2);padding:6px 10px;border-radius:4px;white-space:nowrap}
+
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:18px 0}
+.kpi{background:var(--paper);border:1px solid var(--ring);border-radius:10px;padding:12px 16px;position:relative;overflow:hidden}
+.kpi .l{font-family:var(--cond);text-transform:uppercase;letter-spacing:.1em;font-size:11px;font-weight:700;color:var(--ink2)}
+.kpi .v{font-family:var(--cond);font-size:38px;font-weight:800;line-height:1.05}
+.kpi .n{font-size:12px;color:var(--muted)}
+.kpi::after{content:"";position:absolute;right:-18px;top:-18px;width:64px;height:64px;border-radius:50%;border:10px solid var(--b100)}
+
+.controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.controls input,.controls select{font:inherit;border:1px solid var(--axis);background:var(--paper);border-radius:8px;padding:8px 10px;color:var(--ink)}
+.controls input{min-width:220px}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.tagrow{display:flex;align-items:center;gap:6px;flex-wrap:wrap;flex-basis:100%}
+.tagrow .ctl-label{margin-left:0}
+.chip.tchip{font-size:11px;padding:4px 9px}
+.chip.tchip .cnt{opacity:.6;font-weight:600;margin-left:2px}
+.chip.tchip.fund{border-style:dashed}
+.chip.tchip.fund[aria-pressed="true"]{border-style:solid}
+body.anon .who .nm,body.anon .pname{font-family:ui-monospace,"SF Mono",Menlo,monospace;letter-spacing:.04em}
+body.anon .pname{font-size:24px}
+.chip{font-family:var(--cond);text-transform:uppercase;letter-spacing:.06em;font-weight:700;font-size:12px;border:1.5px solid var(--ink);background:transparent;border-radius:999px;padding:5px 11px;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.ctl-label{font-family:var(--cond);text-transform:uppercase;letter-spacing:.1em;font-size:11px;font-weight:700;color:var(--muted);margin-left:6px}
+
+.layout{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:1100px){.layout{grid-template-columns:minmax(0,1fr)}}
+.card{background:var(--paper);border:1px solid var(--ring);border-radius:12px;min-width:0}
+.board{overflow:auto;max-height:calc(100vh - 120px)}
+table{border-collapse:separate;border-spacing:0;width:100%;font-variant-numeric:tabular-nums}
+thead th{position:sticky;top:0;background:var(--paper);z-index:2;font-family:var(--cond);text-transform:uppercase;letter-spacing:.08em;font-size:11px;font-weight:700;color:var(--ink2);text-align:center;padding:10px 6px;border-bottom:2px solid var(--ink);cursor:pointer;white-space:nowrap;user-select:none}
+thead th.left{text-align:left;padding-left:14px}
+thead th .arr{color:var(--orange)}
+thead tr.group th{position:sticky;top:0;border-bottom:none;padding:8px 6px 0;font-size:10px;color:var(--muted);cursor:default}
+thead tr.cols th{top:24px}
+tbody tr{cursor:pointer}
+tbody td{padding:7px 6px;border-bottom:1px solid var(--grid);text-align:center;white-space:nowrap}
+tbody tr td{background:color-mix(in srgb,var(--tc,#fcfcfb) 7%,#fcfcfb)}
+tbody tr:hover td{background:color-mix(in srgb,var(--tc,#2a78d6) 14%,#fcfcfb)}
+tbody tr.sel td{background:color-mix(in srgb,var(--tc,#2a78d6) 22%,#fcfcfb)}
+tbody tr td.who{box-shadow:inset 4px 0 0 var(--tc,transparent)}
+td.who{text-align:left;padding-left:14px}
+.who .nm{font-weight:700}
+.who .meta{font-size:12px;color:var(--ink2)}
+.rk{font-family:var(--cond);color:var(--muted);font-weight:700}
+.rt{display:inline-block;min-width:32px;padding:3px 0;border-radius:6px;font-family:var(--cond);font-weight:800;font-size:15px}
+.ovr{min-width:44px;font-size:20px;padding:4px 0;border-radius:8px}
+.groupL{border-left:1px dashed var(--axis)}
+.trait{font-family:var(--cond);font-weight:700;text-transform:uppercase;font-size:12px;letter-spacing:.05em}
+.stars{color:var(--orange);letter-spacing:1px}
+.wind{font-family:var(--cond);font-weight:700;font-size:13px}
+.wind .ar{display:inline-block;width:14px}
+.head{color:#c0392b}.tail{color:var(--b550)}
+.dlt{font-family:var(--cond);font-weight:800;font-size:14px}
+.dlt.pos{color:#006300}.dlt.neg{color:var(--ink2)}
+.fitq{font-family:var(--cond);font-weight:700;font-size:12px;text-transform:uppercase;padding:2px 7px;border-radius:4px;border:1px solid var(--axis)}
+.fitq.both{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.fitq.flag{background:#fdebe2;color:#8a3412;border-color:var(--orange)}
+.coach{border:1.5px solid var(--orange);background:#fff6ec;border-radius:10px;padding:12px 14px;margin:0 0 14px}
+.coach .ch{font-family:var(--cond);text-transform:uppercase;letter-spacing:.08em;font-size:11px;font-weight:800;color:#8a3412}
+.coach .cs1{font-family:var(--cond);font-weight:800;font-size:19px;line-height:1.2;margin:4px 0}
+.coach .cw{font-size:13px;color:var(--ink2);line-height:1.45}
+.coach .calt{font-size:12px;margin-top:8px;padding-top:8px;border-top:1px dashed #f3c4ad;line-height:1.45}
+.coach .calt span{color:var(--ink2)}
+.coach .cnote{font-size:11px;color:var(--muted);margin-top:8px}
+.code{font-family:ui-monospace,"SF Mono",Menlo,monospace;font-weight:700;letter-spacing:.08em}
+
+.side{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:16px;align-items:start;min-width:0}
+@media (max-width:900px){.side{grid-template-columns:minmax(0,1fr)}}
+.side .card{padding:14px 16px}
+.ct{font-family:var(--cond);text-transform:uppercase;letter-spacing:.08em;font-weight:800;font-size:15px;margin:0}
+.cs{font-size:12px;color:var(--ink2);margin:3px 0 8px;line-height:1.4}
+.chartbox{position:relative;width:100%;height:clamp(260px,38vh,360px);overflow:hidden;min-width:0}
+.chartbox svg{display:block}
+.tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--paper);font-size:12px;padding:7px 9px;border-radius:6px;opacity:0;transition:opacity .1s;white-space:nowrap;z-index:5}
+.tip b{font-weight:700}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--ink2);margin-top:6px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:-1px}
+.legend .ln{width:16px;height:0;border-top:2px dashed var(--ink2);border-radius:0}
+.note{font-size:12px;color:var(--ink2);line-height:1.5}
+.note p{margin:0 0 8px}
+.note b{color:var(--ink)}
+
+/* drawer */
+.scrim{position:fixed;inset:0;background:rgba(11,11,11,.28);opacity:0;pointer-events:none;transition:opacity .2s;z-index:20}
+.scrim.on{opacity:1;pointer-events:auto}
+.drawer{position:fixed;top:0;right:0;height:100vh;width:min(780px,100%);background:var(--page);z-index:21;transform:translateX(105%);transition:transform .28s cubic-bezier(.2,.8,.2,1);overflow-y:auto;padding:0 0 70px;box-shadow:-12px 0 40px rgba(0,0,0,.12)}
+.drawer.on{transform:none}
+.pcard{background:var(--paper);margin:16px;border-radius:14px;border:1px solid var(--ring);overflow:hidden}
+.phead{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;padding:18px 18px 14px;border-bottom:3px solid var(--ink);position:relative}
+.phead h2{font-family:var(--cond);font-size:32px;line-height:1;margin:2px 0 6px;text-transform:uppercase}
+.phead .meta{color:var(--ink2);font-size:13px;line-height:1.5}
+.bigovr{text-align:center}
+.bigovr .rt{font-size:40px;min-width:76px;padding:8px 0;border-radius:12px}
+.bigovr .l{font-family:var(--cond);font-weight:700;letter-spacing:.12em;font-size:11px;color:var(--ink2);margin-top:4px}
+.close{position:absolute;top:10px;right:10px;border:none;background:none;font-size:22px;cursor:pointer;color:var(--ink2);display:none}
+.badges{display:flex;gap:8px;flex-wrap:wrap;padding:12px 18px;border-bottom:1px solid var(--grid)}
+.badge{border:1px solid var(--axis);border-radius:8px;padding:6px 10px;background:var(--paper)}
+.badge .l{font-family:var(--cond);text-transform:uppercase;letter-spacing:.08em;font-size:10px;font-weight:700;color:var(--muted)}
+.badge .v{font-family:var(--cond);font-weight:800;font-size:17px}
+.sec{padding:14px 18px;border-bottom:1px solid var(--grid)}
+.sec:last-child{border-bottom:none}
+.sec h3{font-family:var(--cond);text-transform:uppercase;letter-spacing:.1em;font-size:13px;margin:0 0 10px;display:flex;justify-content:space-between;align-items:baseline}
+.sec h3 small{font-family:var(--sans);text-transform:none;letter-spacing:0;font-weight:400;color:var(--muted);font-size:11px}
+.sec h3[role=button]{cursor:pointer;user-select:none;justify-content:flex-start;gap:8px;margin:-4px -6px 6px;padding:4px 6px;border-radius:6px}
+.sec h3[role=button]:hover{background:#f3f1ea}
+.sec h3[role=button]:focus-visible{outline:2px solid var(--blue);outline-offset:1px}
+.sec h3 small{margin-left:auto;text-align:right}
+.chev{display:inline-block;width:12px;color:var(--ink2);transition:transform .15s}
+.sec.collapsed .chev{transform:rotate(-90deg)}
+.sec.collapsed>:not(h3){display:none}
+.sec.collapsed h3{margin-bottom:-4px}
+.secbar{display:flex;justify-content:flex-end;gap:6px;padding:8px 18px 0}
+.secbar button{font-family:var(--cond);text-transform:uppercase;letter-spacing:.06em;font-weight:700;font-size:11px;background:none;border:1px solid var(--axis);border-radius:999px;padding:3px 10px;cursor:pointer;color:var(--ink2)}
+.secbar button:hover{border-color:var(--ink);color:var(--ink)}
+.bar{display:grid;grid-template-columns:150px minmax(0,1fr) 92px;align-items:center;gap:10px;margin:7px 0}
+.bar .n{font-size:13px}
+.track{position:relative;height:12px;background:#efeee9;border-radius:6px}
+.fill{position:absolute;left:0;top:0;bottom:0;border-radius:6px;background:var(--blue)}
+.bar .val{font-family:var(--cond);font-weight:700;font-size:14px;text-align:right}
+.bar .val span{color:#006300}
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;align-items:center}
+.cpp .cpptype{background:var(--ink);color:var(--paper);border-radius:10px;padding:9px 12px;margin-bottom:10px}
+.cpp .cpptype .l{font-family:var(--cond);text-transform:uppercase;letter-spacing:.08em;font-size:10px;font-weight:700;color:#c3c2b7}
+.cpp .cpptype .v{font-family:var(--cond);font-weight:800;font-size:20px;line-height:1.15}
+.cl{font-family:var(--cond);text-transform:uppercase;letter-spacing:.08em;font-size:11px;font-weight:700;color:var(--ink2);margin-bottom:4px}
+.cl span{font-family:var(--sans);text-transform:none;letter-spacing:0;font-weight:400;color:var(--muted);margin-left:4px}
+.ib{display:grid;grid-template-columns:86px minmax(0,1fr) 26px;align-items:center;gap:8px;margin:5px 0}
+.ib .n{font-size:12px}.ib .n i{color:var(--orange);font-style:normal;font-size:9px;vertical-align:1px}
+.ib.maj .n{font-weight:700}
+.ib .val{font-family:var(--cond);font-weight:700;font-size:13px;text-align:right}
+.ib .track{height:10px}
+.fill.lo{background:#9ec5f4}
+.fill.b5f{background:#52514e}
+.cppp{margin-top:14px;padding-top:12px;border-top:1px dashed var(--grid)}
+.b5 .bar{grid-template-columns:130px minmax(0,1fr) 40px;margin:5px 0}
+.styles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.sty{background:#f7f6f2;border-radius:8px;padding:8px 10px}
+.sty .l{font-size:11px;color:var(--ink2);line-height:1.3}
+.sty .v{font-family:var(--cond);font-weight:800;font-size:16px;margin-top:2px}
+td.cpptd{text-align:left;white-space:nowrap}
+.cppt{display:block;font-family:var(--cond);font-weight:800;font-size:13px}
+.cppa{display:block;font-size:11px;color:var(--ink2)}
+.hexbox{position:relative;width:100%;height:220px}
+/* quadrant lines sit at the 55-point fit threshold, so the dot and the highlighted box always agree */
+.quad{display:grid;grid-template-columns:55fr 45fr;grid-template-rows:45fr 55fr;gap:0;width:100%;max-width:220px;aspect-ratio:1/1;position:relative;margin:0 auto;border-radius:6px;overflow:visible}
+.quad div{background:#efeee9;box-shadow:inset 0 0 0 1px var(--paper);display:flex;align-items:center;justify-content:center;font-family:var(--cond);text-transform:uppercase;font-size:11px;font-weight:700;color:var(--muted);text-align:center;padding:4px}
+.quad div.on{background:var(--ink);color:var(--paper)}
+.quad .dot{position:absolute;width:14px;height:14px;margin:0;border-radius:50%;background:var(--orange);box-shadow:0 0 0 2px var(--paper);transform:translate(-50%,50%);z-index:2;pointer-events:auto}
+.qax{font-size:11px;color:var(--muted);text-align:center;margin-top:4px}
+.ctx{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.ctx .box{background:#f7f6f2;border-radius:10px;padding:10px 12px}
+.ctx .box h4{font-family:var(--cond);text-transform:uppercase;letter-spacing:.08em;font-size:12px;margin:0 0 6px}
+.kv{display:flex;justify-content:space-between;gap:8px;font-size:12px;padding:3px 0;border-bottom:1px dotted var(--grid)}
+.kv:last-child{border-bottom:none}
+.kv span:first-child{color:var(--ink2)}
+.kv span:last-child{font-weight:700;text-align:right}
+.exp{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 14px}
+.exp div{font-size:13px;display:flex;gap:8px;align-items:center}
+.exp .y{color:#006300;font-weight:800}
+.exp .x{color:var(--muted)}
+.exp .no{color:var(--ink2)}
+.windbar{position:relative;height:10px;border-radius:5px;background:linear-gradient(90deg,#e34948,#f0efec 50%,#2a78d6);margin:8px 0 4px}
+.windbar i{position:absolute;top:-4px;width:4px;height:18px;background:var(--ink);border-radius:2px;transform:translateX(-50%);box-shadow:0 0 0 2px var(--paper)}
+.windlab{display:flex;justify-content:space-between;font-size:11px;color:var(--muted)}
+.tag{display:inline-block;background:var(--ink);color:#fff;font-family:var(--cond);font-weight:800;font-size:11px;letter-spacing:.08em;padding:3px 7px;border-radius:4px}
+.tag.fund{background:#fff;color:var(--ink);border:1.5px solid var(--ink);font-size:10px}
+td.tags{white-space:normal;min-width:84px}
+td.tags .tag{display:block;width:max-content;margin:2px auto}
+.badge.fundb .v{font-size:14px}.badge .fc{font-size:11px;color:var(--ink2);margin-top:2px}
+.trk{font-family:var(--cond);font-weight:800;font-size:12px;letter-spacing:.06em;padding:2px 7px;border-radius:4px;background:var(--tc);color:var(--tink,#fff)}
+.tkey{display:flex;align-items:center;gap:6px;flex-wrap:wrap;flex-basis:100%;font-size:12px;color:var(--ink2)}
+.tkey .ctl-label{margin-left:0}
+.tkey i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px;background:var(--tc)}
+.chip.trkchip{font-size:11px;padding:4px 9px;border-color:var(--tc)}
+.chip.trkchip .cnt{opacity:.6;font-weight:600;margin-left:2px}
+.chip.trkchip[aria-pressed="true"]{background:var(--tc);color:var(--tink);border-color:var(--tc)}
+.chip.trkchip[aria-pressed="true"] i{background:var(--tink)}
+.ints{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.int{background:#f7f6f2;border-radius:10px;padding:10px 12px}
+.int .l{font-family:var(--cond);text-transform:uppercase;letter-spacing:.08em;font-size:11px;font-weight:700;color:var(--ink2)}
+.int .v{font-family:var(--cond);font-weight:800;font-size:17px;line-height:1.15;margin-top:2px}
+.int:first-child{background:var(--ink);color:var(--paper)}.int:first-child .l{color:#c3c2b7}
+.target{position:absolute;top:-4px;bottom:-4px;width:3px;background:var(--orange);border-radius:2px;box-shadow:0 0 0 2px var(--paper);transform:translateX(-50%)}
+.bar .val span.gapneg{color:#8a3412}
+.focus{font-size:13px;margin:10px 0 12px;padding:8px 10px;background:#fff6ec;border-radius:6px}
+table.emp{width:100%;border-collapse:collapse;font-size:13px}
+.geo{margin-top:14px;padding-top:12px;border-top:1px dashed var(--grid)}
+.geo .gh{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:8px}
+.geo .gt{font-family:var(--cond);text-transform:uppercase;letter-spacing:.08em;font-size:13px;font-weight:800}
+.geo .gs{font-size:12px;color:var(--ink2)}
+.gnet{text-align:right;flex:none}
+.gnet .v{font-family:var(--cond);font-weight:800;font-size:28px;line-height:1}
+.gnet .l{font-family:var(--cond);text-transform:uppercase;letter-spacing:.08em;font-size:10px;font-weight:700;color:var(--ink2)}
+.gnet .gl{font-size:11px;color:var(--ink2)}
+table.geot{width:100%;border-collapse:collapse;font-size:13px}
+table.geot th{font-family:var(--cond);text-transform:uppercase;letter-spacing:.06em;font-size:10px;color:var(--ink2);text-align:left;padding:6px;border-bottom:2px solid var(--ink)}
+table.geot td{padding:6px;border-bottom:1px solid var(--grid);vertical-align:top}
+.geot .gm{font-weight:700;white-space:nowrap}
+.geot .gw{width:150px}
+.geot td.gw{line-height:0}
+.geot .gn{width:72px;text-align:center;font-family:var(--cond);font-weight:800;font-size:16px;font-variant-numeric:tabular-nums}
+.geot th.gn{font-size:10px;font-weight:700;line-height:1.2}
+.geot td.gw,.geot td.gn{vertical-align:middle}
+.lg{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;padding:0 4px;margin:0 3px 3px 0;border-radius:4px;box-shadow:inset 0 0 0 1px rgba(11,11,11,.12);font-family:var(--cond);font-weight:800;font-size:9.5px;letter-spacing:.01em;line-height:1;white-space:nowrap;cursor:default}
+.geot .gg{white-space:nowrap;font-size:12px}
+.near{font-family:var(--cond);font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:.05em;background:#efeee9;color:var(--ink2);border-radius:3px;padding:1px 5px;margin-left:4px}
+table.alum{width:100%;max-width:100%;table-layout:fixed;border-collapse:collapse;font-size:13px}
+table.alum th:nth-child(1){width:36%}table.alum th:nth-child(2){width:64px}
+table.alum th{font-family:var(--cond);text-transform:uppercase;letter-spacing:.06em;font-size:10px;color:var(--ink2);text-align:left;padding:6px;border-bottom:2px solid var(--ink)}
+table.alum td{padding:8px 5px;overflow-wrap:anywhere;border-bottom:1px solid var(--grid);vertical-align:top}
+.alum .an{font-weight:700;overflow-wrap:anywhere}
+.alum .an .trk{font-size:9.5px;padding:1px 5px;margin-left:4px;vertical-align:1px}
+.alum .as{font-size:11.5px;color:var(--ink2);margin-top:2px}
+.alum .arl{text-align:center}
+.alum td.arl b{font-family:var(--cond);font-weight:800;font-size:18px;font-variant-numeric:tabular-nums}
+.relb{height:4px;background:#e1e0d9;border-radius:2px;margin-top:3px}
+.relb i{display:block;height:100%;background:var(--ink);border-radius:2px}
+.aj{display:flex;align-items:flex-start;gap:6px;min-width:0}
+.aj .lg{margin:0;flex:none}
+.aj span:last-child{font-size:12px;line-height:1.25;min-width:0;overflow-wrap:anywhere}
+.alum td .near{display:inline-block;margin:4px 0 0 0}
+.pips{display:inline-flex;gap:2px;vertical-align:-1px;margin-right:4px}
+.pips i{width:9px;height:9px;border-radius:50%;background:#e1e0d9}
+.pips i.on{background:var(--ink)}
+.ng{color:var(--muted);font-style:italic}
+table.emp th{font-family:var(--cond);text-transform:uppercase;letter-spacing:.06em;font-size:10px;color:var(--ink2);text-align:left;padding:6px;border-bottom:2px solid var(--ink)}
+table.emp td{padding:6px;border-bottom:1px solid var(--grid)}
+table.emp tr.hl td{background:#e8f1fc}
+table.emp .en{font-weight:700}
+table.emp .ei{color:var(--ink2);font-size:12px}
+.st{font-family:var(--cond);font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.04em;padding:2px 6px;border-radius:4px;white-space:nowrap}
+.st-on{background:#006300;color:#fff}.st-close{background:#cde2fb;color:#104281}.st-building{background:#efeee9;color:#52514e}.st-long{background:#fff;color:#52514e;border:1px dashed #c3c2b7}
+.progs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:14px}
+.prog{background:#f7f6f2;border-radius:10px;padding:10px 12px;border:1px solid transparent}
+.prog .l{font-family:var(--cond);text-transform:uppercase;letter-spacing:.08em;font-size:11px;font-weight:700;color:var(--ink2)}
+.prog .v{font-family:var(--cond);font-weight:800;font-size:18px;line-height:1.15;margin:2px 0}
+.prog .pc{font-size:12px;color:var(--ink2)}
+.prog.main{background:#fff;border-color:var(--orange);box-shadow:inset 4px 0 0 var(--orange)}
+.prog.none{background:transparent;border:1px dashed var(--axis)}.prog.none .v{color:var(--muted)}
+.hsg{display:inline-block;min-width:26px;text-align:center;font-family:var(--cond);font-weight:800;border-radius:4px;padding:0 5px}
+.hsg-A{background:#104281;color:#fff}.hsg-B{background:#2a78d6;color:#fff}.hsg-C{background:#9ec5f4;color:#0b0b0b}.hsg-D{background:#e4eefb;color:#0b0b0b;border:1px solid #c3c2b7}
+.hpi-of{color:var(--muted);font-weight:400}
+.hoh-na{color:var(--muted);font-style:italic;font-weight:400}
+.hoh-flag{color:#8a3412}
+.ctx .box .meter{margin:2px 0 4px}
+.inst{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.inst .stat{background:#f7f6f2;border-radius:10px;padding:10px 12px}
+.inst .l{font-family:var(--cond);text-transform:uppercase;letter-spacing:.08em;font-size:11px;font-weight:700;color:var(--ink2)}
+.inst .v{font-family:var(--cond);font-weight:800;font-size:26px;line-height:1.1}
+.inst .n{font-size:11px;color:var(--muted)}
+.meter{height:6px;border-radius:3px;background:#e4e2db;margin-top:7px;overflow:hidden}
+.meter i{display:block;height:100%;background:var(--blue);border-radius:3px}
+.src{font-size:11px;color:var(--muted);margin-top:8px}
+.ranks{margin-top:12px;padding-top:12px;border-top:1px dashed var(--grid)}
+.ranks .rh{font-family:var(--cond);text-transform:uppercase;letter-spacing:.08em;font-size:11px;font-weight:700;color:var(--ink2);margin-bottom:6px}
+.rrow{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) minmax(0,1fr);gap:10px;align-items:center;padding:7px 0;border-bottom:1px solid var(--grid);font-size:13px}
+.rrow .rp{font-weight:700}
+.rrow .rp .l{display:block;font-family:var(--cond);text-transform:uppercase;letter-spacing:.06em;font-size:10px;font-weight:700;color:var(--muted)}
+.rk1{color:var(--ink2)}.rk1 b{font-family:var(--cond);font-size:20px;color:var(--ink);margin-right:2px}
+.rk0{color:var(--muted);font-style:italic;font-size:12px}
+.caveat{font-size:12px;color:var(--ink2);background:#fff6ec;border-left:3px solid var(--orange);padding:9px 12px;margin:0 16px;border-radius:4px;line-height:1.45}
+@media (max-width:640px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.ctx,.inst,.ints,.progs{grid-template-columns:minmax(0,1fr)}.styles{grid-template-columns:repeat(2,minmax(0,1fr))}.two{grid-template-columns:minmax(0,1fr)}.bar{grid-template-columns:110px minmax(0,1fr) 80px}.close{display:block}}
+@media (max-width:900px){.close{display:block}}
+@media print{
+  body{padding:0 0 20px;background-image:none}
+  .controls,.scrim,.drawer,.sample{display:none!important}
+  .layout{grid-template-columns:minmax(0,1fr)}
+  .board{max-height:none;overflow:visible}
+  thead th{position:static}
+  @page{size:landscape;margin:12mm}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <div class="eyebrow">Admissions scouting view · Sophomore applicants</div>
+      <h1>Scouting Simulator</h1>
+      <p class="sub">Ratings come first. Context sits beside them, the way wind is recorded next to a sprint time: it helps you read the number but never changes it. Click any student to open their full profile.</p>
+    </div>
+    <div class="sample">Real IPEDS schools · fictional students</div>
+  </header>
+
+  <section class="kpis" id="kpis"></section>
+
+  <div class="controls">
+    <input id="q" type="search" placeholder="Search name, school, major, code…" aria-label="Search">
+    <select id="sort" aria-label="Sort by">
+      <option value="ovr">Sort: Overall rating</option>
+      <option value="dist">Sort: Above expected</option>
+      <option value="growth">Sort: First-year growth</option>
+      <option value="gap">Sort: Closest to career target</option>
+      <option value="opp">Sort: Opportunity (lowest first)</option>
+    </select>
+    <span class="ctl-label">Names</span>
+    <div class="chips" id="nameChips"></div>
+    <span class="ctl-label">Major fit</span>
+    <div class="chips" id="fitChips"></div>
+    <span class="ctl-label">Growth trait</span>
+    <div class="chips" id="traitChips"></div>
+    <div class="tagrow"><span class="ctl-label">Tags</span><div class="chips" id="tagChips"></div></div>
+    <div class="tkey" id="trackKey"></div>
+  </div>
+
+  <div class="layout">
+    <div class="card board">
+      <table id="tbl">
+        <thead>
+          <tr class="group">
+            <th colspan="4"></th>
+            <th colspan="6" class="groupL">MLT-graded ratings</th>
+            <th colspan="5" class="groupL">Context &amp; development</th>
+            <th colspan="2" class="groupL">Career track</th>
+          </tr>
+          <tr class="cols" id="hdr"></tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+
+    <aside class="side">
+      <div class="card">
+        <h2 class="ct">Rating vs. opportunity</h2>
+        <p class="cs">Each dot is a student. Dots above the dashed line rate higher than their opportunity to date would predict.</p>
+        <div class="chartbox" id="scatter"><div class="tip" id="tip"></div></div>
+        <div class="legend"><span><i style="background:var(--blue)"></i>Student</span><span><i class="ln"></i>Expected rating given opportunity</span></div>
+      </div>
+      <div class="card note">
+        <h2 class="ct" style="margin-bottom:8px">How to read the board</h2>
+        <p><b>OVR</b> is the average of the six MLT-graded ratings (40 to 99), scored when the student applies as a sophomore. Hover any column header to see what it measures.</p>
+        <p><b>Wind</b> turns the opportunity-to-date index into sprint terms. A headwind (−) means the student had less access to opportunity. It's shown for interpretation only.</p>
+        <p><b>+/− Exp</b> is "distance traveled": how far a student's OVR sits above or below what students with similar opportunity typically score.</p>
+        <p><b>Growth trait</b> comes from the student's real first-year record (fall to spring GPA change and credits earned), not from a predicted ceiling, so family background can't set a student's "potential."</p>
+        <p><b>Fit</b> combines skill-fit (major-course GPA vs. overall GPA, plus self-rated ability) with interest-fit (how well the student’s Career Personality Profiler interest areas match the declared or intended major).</p>
+        <p><b>Track</b> is the student's primary career track, one of six: Finance, Consulting, Corporate Management, Software Engineering / Tech, Healthcare, and Public Relations, Media &amp; Entertainment. It's drawn only from tracks that fit their major and is ranked by how well their Career Personality Profiler interest areas match each track. <b>To target</b> shows how far they are, on average, from MLT's benchmark for that track by junior-summer internship recruiting.</p>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer" aria-label="Student profile"></aside>
+
+<script>
+/* ---------- seeded sample data ---------- */
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const R=mulberry32(20261116);
+const rnd=(a,b)=>a+R()*(b-a);
+const randn=()=>{let u=0,v=0;while(!u)u=R();while(!v)v=R();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)};
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+const pick=a=>a[Math.floor(R()*a.length)];
+
+const DIMS=[
+  {k:'orc',ab:'ORC',n:'Oral Communication',d:'Clarity, structure and presence when speaking'},
+  {k:'wrc',ab:'WRC',n:'Written Communication',d:'Clear, purposeful writing for a professional audience'},
+  {k:'tmw',ab:'TMW',n:'Teamwork',d:'Contribution, reliability and conflict handling in groups'},
+  {k:'eiq',ab:'EIQ',n:'Emotional Intelligence',d:'Reading and managing own and others’ emotions'},
+  {k:'eqm',ab:'EQM',n:'Equity-minded Competence',d:'Noticing and acting on inequity across difference'},
+  {k:'dtf',ab:'DTF',n:'Digital & Technical Fluency',d:'Using digital tools, data and technology to get work done'}
+];
+const HEX=['R','I','A','S','E','C'];
+/* all applicants are sophomores in the 2026–27 year, so they are on track to graduate in spring 2029 */
+const GRAD_YEAR=2029;
+const HEXN={R:'Realistic',I:'Investigative',A:'Artistic',S:'Social',E:'Enterprising',C:'Conventional'};
+/* Truity Career Personality Profiler names for the same six interest areas (same order) */
+const CPP={R:'Building',I:'Thinking',A:'Creating',S:'Helping',E:'Persuading',C:'Organizing'};
+const areaNames=(code,n=3)=>code.slice(0,n).split('').map(c=>CPP[c]);
+const MAJORS=[
+  ['Computer Science','IRC'],['Economics','ICE'],['Biology','IRS'],['Psychology','SIA'],
+  ['Business Administration','ECS'],['Mechanical Engineering','RIC'],['English','ASI'],
+  ['Political Science','ESI'],['Nursing','SIR'],['Accounting','CEI'],['Marketing','EAS'],['Sociology','SIA']
+];
+const SECOND={
+  'Computer Science':['Mathematics','Economics'],'Economics':['Mathematics','Political Science','Finance'],'Biology':['Chemistry','Psychology'],
+  'Psychology':['Sociology','Biology'],'Business Administration':['Economics','Finance'],'Mechanical Engineering':['Mathematics','Physics'],
+  'English':['Journalism','Political Science'],'Political Science':['Economics','History','African American Studies'],'Nursing':[],
+  'Accounting':['Finance','Information Systems'],'Marketing':['Communication','Psychology'],'Sociology':['African American Studies','Psychology','Public Health']
+};
+const MINORS={
+  'Computer Science':['Mathematics','Data Science','Entrepreneurship','Business'],'Economics':['Data Science','Statistics','Spanish','Public Policy'],
+  'Biology':['Chemistry','Public Health','Spanish'],'Psychology':['Public Health','Statistics','Education'],
+  'Business Administration':['Data Science','Spanish','Entrepreneurship','Communication'],'Mechanical Engineering':['Business','Computer Science','Mathematics'],
+  'English':['Communication','Film Studies','Spanish','Business'],'Political Science':['Public Policy','Spanish','Statistics','History'],
+  'Nursing':['Spanish','Public Health','Psychology'],'Accounting':['Data Science','Spanish','Business Analytics'],
+  'Marketing':['Data Science','Spanish','Graphic Design','Entrepreneurship'],'Sociology':['Public Policy','Statistics','Education','Spanish']
+};
+/* RIASEC codes for every program (majors list plus second-major and minor options) */
+const PCODE=Object.assign(Object.fromEntries(MAJORS),{
+  'Mathematics':'ICR','Finance':'ECI','Chemistry':'IRC','Physics':'IRA','Journalism':'AES','History':'IAS','African American Studies':'SAI',
+  'Information Systems':'CIR','Communication':'AES','Public Health':'SIE','Data Science':'ICR','Entrepreneurship':'ECA','Business':'ECS',
+  'Spanish':'ASI','Statistics':'ICR','Public Policy':'ISE','Education':'SAE','Film Studies':'ARI','Business Analytics':'CEI','Graphic Design':'ARE'
+});
+/* Career functions. t = illustrative MLT benchmark ratings for internship recruiting (junior summer), not employer requirements.
+   emp = [employer, industry, adjustment to benchmark]. Employers are well-known recruiters for the role, not ranked by hiring volume. */
+const FUNCS={
+  fin:{n:'Finance',ab:'FIN',c:'#2a78d6',ink:'#fff',code:'ECI',t:{orc:84,wrc:80,tmw:82,eiq:80,eqm:70,dtf:82},emp:[['Goldman Sachs','Investment banking',5],['Morgan Stanley','Investment banking',4],['JPMorgan Chase','Banking',4],['BlackRock','Asset management',3],['Bank of America','Banking',2]]},
+  cons:{n:'Consulting',ab:'CONS',c:'#eb6834',ink:'#fff',code:'EIC',t:{orc:88,wrc:86,tmw:86,eiq:84,eqm:76,dtf:80},emp:[['McKinsey & Company','Strategy consulting',6],['Boston Consulting Group','Strategy consulting',6],['Bain & Company','Strategy consulting',6],['Deloitte','Professional services',2],['Accenture','Professional services',1]]},
+  corp:{n:'Corporate Management',ab:'CORP',c:'#1baf7a',ink:'#fff',code:'ECS',t:{orc:80,wrc:78,tmw:84,eiq:80,eqm:74,dtf:80},emp:[['Procter & Gamble','Consumer goods',3],['PepsiCo','Consumer goods',2],['Johnson & Johnson','Healthcare products',2],['Amazon','Technology & retail',2],['Target','Retail',0]]},
+  tech:{n:'Software Engineering / Tech',ab:'TECH',c:'#6b6a64',ink:'#fff',code:'ICR',t:{orc:70,wrc:72,tmw:80,eiq:72,eqm:68,dtf:90},emp:[['Google','Technology',4],['Meta','Technology',4],['Microsoft','Technology',3],['Salesforce','Technology',1],['Capital One','Financial services',0]]},
+  health:{n:'Healthcare',ab:'HLTH',c:'#7c3aed',ink:'#fff',code:'SIR',t:{orc:78,wrc:78,tmw:86,eiq:86,eqm:82,dtf:76},emp:[['Mayo Clinic','Health systems',3],['Johns Hopkins Medicine','Health systems',3],['Kaiser Permanente','Health systems',1],['Genentech','Pharma & biotech',3],['Pfizer','Pharma & biotech',2],['UnitedHealth Group','Health insurance',1]]},
+  pr:{n:'Public Relations, Media & Entertainment',ab:'MEDIA',c:'#eda100',ink:'#0b0b0b',code:'AES',t:{orc:86,wrc:88,tmw:80,eiq:82,eqm:80,dtf:76},emp:[['Netflix','Media & entertainment',4],['The Walt Disney Company','Media & entertainment',3],['NBCUniversal','Media & entertainment',2],['The New York Times','News media',4],['Edelman','Public relations',1],['Weber Shandwick','Public relations',1]]}
+};
+/* Tracks that make sense for each major */
+const MAJORFN={
+  'Computer Science':['tech','cons','fin'],'Economics':['fin','cons','corp'],'Biology':['health','cons'],
+  'Psychology':['health','corp','pr'],'Business Administration':['corp','cons','fin'],'Mechanical Engineering':['tech','corp','cons'],
+  'English':['pr','corp'],'Political Science':['cons','pr','corp'],'Nursing':['health'],
+  'Accounting':['fin','corp','cons'],'Marketing':['corp','pr'],'Sociology':['corp','health','pr']
+};
+function targets(f,adj=0){const o={};DIMS.forEach(d=>o[d.k]=Math.min(99,FUNCS[f].t[d.k]+adj));return o}
+function readiness(cur,tg){
+  let short=0,met=0;DIMS.forEach(d=>{const g=tg[d.k]-cur[d.k];if(g<=0)met++;else short+=g});
+  const avg=short/6,tOvr=Math.round(DIMS.reduce((a,d)=>a+tg[d.k],0)/6);
+  const status=met===6?'On target':avg<=3?'Close':avg<=8?'Building':'Long runway';
+  return {met,avg:+avg.toFixed(1),tOvr,status};
+}
+/* Real IPEDS institutions. UnitIDs checked against College Scorecard / IPEDS records (Nov 2026).
+   g = completion within 150% of normal time (C150_4, fall 2019 cohort); np = average net price, first-time full-time aided students
+   (AY2024-25, in-state for publics); pell = share of undergraduates receiving Pell grants. Figures via College Scorecard / IPEDS (DCY2025-26). */
+const SCHOOLS=[
+  {n:'Howard University',u:131520,st:'DC',c:'Private nonprofit',d:'HBCU',g:74,np:33002,pell:41,url:'https://collegescorecard.ed.gov/school/?131520-Howard-University'},
+  {n:'Spelman College',u:141060,st:'GA',c:'Private nonprofit',d:'HBCU',g:77,np:46089,pell:33,url:'https://collegescorecard.ed.gov/school/?141060-Spelman-College'},
+  {n:'Morehouse College',u:140553,st:'GA',c:'Private nonprofit',d:'HBCU',g:57,np:38655,pell:49,url:'https://nces.ed.gov/ipeds/reported-data/140553'},
+  {n:'North Carolina A & T State University',u:199102,st:'NC',c:'Public',d:'HBCU',g:56,np:9884,pell:57,url:'https://nces.ed.gov/ipeds/reported-data/199102'},
+  {n:'Florida Agricultural and Mechanical University',u:133650,st:'FL',c:'Public',d:'HBCU',g:61,np:15220,pell:58,url:'https://nces.ed.gov/ipeds/institution-profile/133650'},
+  {n:'Morgan State University',u:163453,st:'MD',c:'Public',d:'HBCU',g:42,np:14653,pell:61,url:'https://collegescorecard.ed.gov/school/?163453-morgan-state-university'},
+  {n:'Prairie View A & M University',u:227526,st:'TX',c:'Public',d:'HBCU',g:46,np:13638,pell:71,url:'https://collegescorecard.ed.gov/school/?227526-Prairie-View-A-M-University'},
+  {n:'The University of Texas at San Antonio',u:229027,st:'TX',c:'Public',d:'HSI',g:52,np:9872,pell:49,url:'https://collegescorecard.ed.gov/school/?229027-The-University-of-Texas-at-San-Antonio'},
+  {n:'Florida International University',u:133951,st:'FL',c:'Public',d:'HSI',g:78,np:11462,pell:43,url:'https://collegescorecard.ed.gov/school/fields/?133951-Florida-International-University'},
+  {n:'CUNY City College',u:190567,st:'NY',c:'Public',d:'HSI',g:50,np:1557,pell:63,url:'https://collegescorecard.ed.gov/school/fields/?190567-CUNY-City-College'},
+  {n:'California State University-Fullerton',u:110565,st:'CA',c:'Public',d:'HSI',g:68,np:5115,pell:53,url:'https://collegescorecard.ed.gov/school/fields/?110565-California-State-University-Fullerton'},
+  {n:'University of Illinois Chicago',u:145600,st:'IL',c:'Public',d:'HSI',g:61,np:9540,pell:53,url:'https://collegescorecard.ed.gov/school/?145600-University-of-Illinois-Chicago='},
+  {n:'University of Houston',u:225511,st:'TX',c:'Public',d:'HSI',g:66,np:11439,pell:47,url:'https://collegescorecard.ed.gov/school/fields/?225511-University-of-Houston'},
+  {n:'Georgia State University',u:139940,st:'GA',c:'Public',d:'',g:51,np:12365,pell:57,url:'https://collegescorecard.ed.gov/school/?139940-Georgia-State-University'},
+  {n:'University of Michigan-Ann Arbor',u:170976,st:'MI',c:'Public',d:'',g:93,np:14362,pell:22,url:'https://collegescorecard.ed.gov/school/?170976-University-of-Michigan-Ann-Arbor'},
+  {n:'Georgia Institute of Technology-Main Campus',u:139755,st:'GA',c:'Public',d:'',g:94,np:12028,pell:17,url:'https://collegescorecard.ed.gov/school/?139755-Georgia-Institute-of-Technology-Main-Campus'},
+  {n:'Rutgers University-New Brunswick',u:186380,st:'NJ',c:'Public',d:'',g:84,np:24897,pell:31,url:'https://collegescorecard.ed.gov/school/?186380-Rutgers-University-New-Brunswick'},
+  {n:'University of Pennsylvania',u:215062,st:'PA',c:'Private nonprofit',d:'',g:97,np:29577,pell:20,url:'https://collegescorecard.ed.gov/school/?215062-University-of-Pennsylvania'}
+];
+const PLACES=['Atlanta, GA','Houston, TX','Chicago, IL','Newark, NJ','Oakland, CA','Memphis, TN','Phoenix, AZ','Bronx, NY','Baltimore, MD','Mississippi Delta (rural)','Charlotte, NC','Fresno, CA','Detroit, MI','San Antonio, TX','Albuquerque, NM','Tucson, AZ'];
+/* Fictional funders. Each sponsors students who meet its criteria; ab is the short badge label. */
+const homeState=s=>(s.place.split(', ')[1]||'');
+const FUNDERS=[
+  {n:'Memphis Community Foundation',ab:'MEMPHIS CF',crit:'Students from the Memphis region',test:s=>s.place.startsWith('Memphis')||s.place.startsWith('Mississippi Delta')},
+  {n:'Pablo Sanchez Foundation',ab:'SANCHEZ FDN',crit:'Students from Arizona or New Mexico',test:s=>['AZ','NM'].includes(homeState(s))},
+  {n:'Lone Star Futures Fund',ab:'LONE STAR',crit:'Texas students who are first-generation or Pell-eligible',test:s=>homeState(s)==='TX'&&(s.firstGen||s.pell)},
+  {n:'Great Lakes Talent Initiative',ab:'GREAT LAKES',crit:'Students from Michigan or Illinois',test:s=>['MI','IL'].includes(homeState(s))},
+  {n:'Delta Rising Scholars Fund',ab:'DELTA RISING',crit:'Students from the rural Mississippi Delta',test:s=>s.place.startsWith('Mississippi Delta')},
+  {n:'Harlan Wright Fund for STEM Equity',ab:'WRIGHT STEM',crit:'First-generation students on the Software Engineering / Tech or Healthcare track',test:s=>s.firstGen&&['tech','health'].includes(s.pf)}
+];
+const FIRST=['Amara','Jalen','Sofia','Darius','Mei','Malik','Isabella','Kofi','Priya','Andre','Lucia','Tariq','Zoe','Marcus','Ayesha','Diego','Naomi','Elijah','Camila','Xavier','Fatima','Jordan','Ana','Kwame','Leila','Mateo','Imani','Devon','Rosa','Nia','Omar','Grace','Javier','Tiana','Hassan','Maya','Andrés','Keisha','Wei','Brandon'];
+const LAST=['Okafor','Washington','Ramirez','Nguyen','Jackson','Patel','Bello','Herrera','Johnson','Mensah','Castillo','Robinson','Kim','Delgado','Thompson','Ali','Brooks','Santos','Owusu','Rivera','Harris','Chen','Morales','Diallo','Carter','Flores','Lewis','Ibrahim','Gomez','Mitchell','Asante','Reyes','Coleman','Haddad','Vargas','Simmons','Lopez','Adeyemi','Price','Ortiz'];
+const EXP=[
+  ['paid','Paid internship'],['unpaid','Unpaid internship'],['mentor','Mentor in target field'],['research','Research with faculty'],
+  ['summer','Summer / pre-college program'],['abroad','Study abroad'],['contact','Knows someone in target industry'],['prep','Test prep access']
+];
+
+function hexDist(a,b){const d=Math.abs(HEX.indexOf(a)-HEX.indexOf(b));return Math.min(d,6-d)}
+function hollandProfile(){
+  const f=Math.floor(R()*6);
+  const s=(f+(R()<.65?(R()<.5?1:5):Math.floor(rnd(2,5))))%6;
+  let t;do{t=(R()<.6?(s+(R()<.5?1:5)):Math.floor(R()*6))%6}while(t===f||t===s);
+  const scores={};HEX.forEach(h=>scores[h]=Math.round(rnd(18,48)));
+  scores[HEX[f]]=Math.round(rnd(80,94));scores[HEX[s]]=Math.round(rnd(66,79));scores[HEX[t]]=Math.round(rnd(54,65));
+  return {code:HEX[f]+HEX[s]+HEX[t],scores};
+}
+function congruence(sc,mc){let p=0;[3,2,1].forEach((w,i)=>p+=w*(3-hexDist(sc[i],mc[i])));return Math.round(p/18*100)}
+
+const S=FIRST.map((fn,i)=>{
+  const school=SCHOOLS[Math.floor(R()*SCHOOLS.length)];
+  const coi=Math.round(clamp(rnd(4,96),1,100));
+  const ec=Math.round(clamp(coi*.6+rnd(0,40),1,99));
+  const apOff=Math.round(clamp(2+coi/100*20+randn()*3,1,26));
+  const apTake=Math.round(clamp(apOff*rnd(.2,.8),0,apOff));
+  const firstGen=R()<(0.75-coi/160);
+  const income=Math.round(clamp(18+coi*1.1+randn()*18,12,210));
+  /* test prep hours: zero for many students, more with neighborhood opportunity and income */
+  const prepHours=R()<(.2+coi/140)?Math.round(clamp(rnd(4,20)+coi/4+income/12+randn()*8,2,90)):0;
+  const pell=income<60;
+  const exp={};
+  EXP.forEach(([k])=>{let p=.1+coi/100*.45;if(k==='unpaid')p=income>90?.3:.08;if(k==='paid')p=.12+coi/500;if(k==='abroad')p=income>80?.12:.03;if(k==='research')p=.08+coi/400;if(k==='prep')p=prepHours>0?1:0;exp[k]=R()<p});
+  const expN=Object.values(exp).filter(Boolean).length;
+  const opp=Math.round(.3*coi+.25*ec+.2*(apOff/26*100)+.25*(expN/8*100));
+  const talent=randn();
+  /* high school: share of offered AP/IB taken, college credit brought in, and SAT or ACT (some apply test-optional) */
+  const place=pick(PLACES),city=place.split(',')[0].replace(' (rural)','');
+  const hsName=(city.includes('Delta')?'Delta Regional':city)+' '+pick(['Central High School','Northside High School','Early College High School','STEM Magnet High School','Preparatory Academy','Eastside High School']);
+  const hsScore=coi+randn()*12;
+  /* HS Performance Index (HPI): 0 to 100 rating of the high school's academic performance */
+  const hpi=Math.round(clamp(hsScore,1,99));
+  const hpiBand=hpi>=78?'A':hpi>=58?'B':hpi>=38?'C':'D';
+  const apPct=apOff?Math.round(apTake/apOff*100):0;
+  const dual=R()<.3?Math.round(rnd(3,15)):0;
+  const transfer=Math.round(clamp(apTake*rnd(.4,1)*3+dual,0,45));
+  const sat=Math.round(clamp(1080+talent*120+(coi-50)*1.6+prepHours*.8+randn()*60,800,1560)/10)*10;
+  const test=R()<.3?{t:'None',v:'Test-optional'}:R()<.7?{t:'SAT',v:sat}:{t:'ACT',v:Math.round(clamp(sat/44.5,12,35))};
+  /* everyone applies as a sophomore, so ratings are a single snapshot at application */
+  const cur={};
+  DIMS.forEach(d=>{cur[d.k]=Math.round(clamp(60+6*talent+.11*(opp-50)+randn()*5,40,96))});
+  const ovr=Math.round(DIMS.reduce((a,d)=>a+cur[d.k],0)/6);
+  /* growth comes from the observed first-year record: fall to spring GPA and credit momentum */
+  const fallGpa=+clamp(2.9+talent*.3+randn()*.3,1.8,4).toFixed(2);
+  const springGpa=+clamp(fallGpa+rnd(-.25,.45)+talent*.05,1.8,4).toFixed(2);
+  const credits=Math.round(clamp(27+randn()*3+talent,18,36));
+  const trend=Math.round((springGpa-fallGpa)*100+(credits-30)*3);
+  const trait=trend>=30?'Elite':trend>=15?'Star':trend>=3?'Impact':'Normal';
+  const [major,mcode]=pick(MAJORS);
+  const declared=R()<.45;
+  /* second major (about 1 in 5) and minor (about half), drawn only from pairings that make sense for the major */
+  const m2=SECOND[major].length&&R()<.2?pick(SECOND[major]):null;
+  const minor=R()<.55?pick(MINORS[major].filter(x=>x!==m2)):null;
+  const hol=hollandProfile();
+  const interestFit=congruence(hol.code,mcode);
+  /* career interests: ranked among the functions that fit the major, by interest-area match (Truity uses the same six areas as Holland) */
+  const fns=MAJORFN[major].map(f=>({f,s:congruence(hol.code,FUNCS[f].code)+rnd(0,25)})).sort((a,b)=>b.s-a.s).map(x=>x.f);
+  const pf=fns[0],sf=fns[1]||null;
+  const ind=pick([...new Set(FUNCS[pf].emp.map(e=>e[1]))]);
+  const ready=readiness(cur,targets(pf));
+  const gpa=+((fallGpa+springGpa)/2).toFixed(2);
+  const majorGpa=+clamp(gpa+randn()*.28,2,4).toFixed(2);
+  const selfAbility=Math.round(clamp(3.4+randn()*.8,1,5));
+  const skillFit=Math.round(clamp(50+(majorGpa-gpa)*70+(selfAbility-3)*10+talent*6,4,98));
+  const quad=skillFit>=55&&interestFit>=55?'Both':skillFit>=55?'Skill':interestFit>=55?'Interest':'Neither';
+  return {
+    id:i,name:fn+' '+LAST[(i*7+3)%LAST.length],school,major,mcode,declared,m2,minor,place,hsName,hpi,hpiBand,apPct,dual,transfer,test,prepHours,
+    coi,ec,apOff,apTake,firstGen,parentEd:firstGen?pick(['High school diploma','Some college, no degree','Did not finish high school']):pick(['Associate degree','Bachelor’s degree','Graduate degree']),
+    income,pell,loans:Math.round(clamp((pell?4:3)+randn()*2.5+(school.c==='Private nonprofit'?4:0),0,15)),hours:Math.round(clamp(24-coi/5+randn()*6,0,32)),
+    pf,sf,ind,ready,
+    exp,expN,opp,cur,ovr,fallGpa,springGpa,credits,trend,trait,hol,interestFit,gpa,majorGpa,selfAbility,skillFit,quad
+  };
+});
+/* Household size (includes the student; 2 to 15, pool mean about 4) and head-of-household work.
+   Uses its own seeded generator so adding these fields doesn't reshuffle the rest of the sample. */
+const HOH_JOBS=[
+  ['Healthcare · Nursing assistant',1],['Healthcare · Registered nurse',2],['Education · Teacher',2],['Education · School bus driver',1],
+  ['Transportation · Truck driver',1],['Retail · Store manager',1],['Retail · Cashier',0],['Food service · Cook',0],
+  ['Construction · Electrician',1],['Manufacturing · Machine operator',1],['Government · Postal worker',1],['Government · Corrections officer',1],
+  ['Finance · Bank teller',1],['Technology · IT support',2],['Professional services · Accountant',3],['Professional services · Lawyer',3],
+  ['Self-employed · Small business owner',2],['Hospitality · Housekeeper',0],['Military · Enlisted service member',1],['Healthcare · Physician',3]
+];
+S.forEach((s,i)=>{
+  const R2=mulberry32(77003+i*131),n2=()=>{let u=0,v=0;while(!u)u=R2();while(!v)v=R2();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)};
+  s.hh=Math.round(clamp(3.7+n2()*1.2+(R2()<.06?2+R2()*7:0),2,15));
+  const u=R2();
+  if(u<.11)s.hoh={v:'Unknown',k:'hoh-na'};
+  else if(u<.17)s.hoh={v:'Unemployed',k:'hoh-flag'};
+  else if(u<.22)s.hoh={v:'On disability',k:'hoh-flag'};
+  else{
+    /* tier 0 to 3 roughly tracks family income and parent education */
+    const tier=clamp(Math.round((s.income-30)/45+(s.firstGen?-0.6:0.6)+n2()*.6),0,3);
+    const pool=HOH_JOBS.filter(j=>Math.abs(j[1]-tier)<=1);
+    s.hoh={v:pool[Math.floor(R2()*pool.length)][0],k:''};
+  }
+});
+S.forEach(s=>s.fund=FUNDERS.filter(f=>f.test(s)));
+/* Truity Career Personality Profiler layer: Big Five percentiles (loosely tied to interest scores) plus work styles
+   and a type name derived from them. Own seeded generator so the rest of the sample stays the same. */
+// [key, name, what the trait measures, high-end meaning, low-end meaning]
+const B5=[
+  ['O','Openness','Curiosity and comfort with new ideas, abstract thinking and change','imaginative, drawn to novelty and big-picture ideas','practical, prefers proven methods and concrete tasks'],
+  ['C','Conscientiousness','Organization, dependability and follow-through on goals','planful, detail-oriented and self-disciplined','flexible and spontaneous, less bound by plans and routines'],
+  ['E','Extraversion','Energy drawn from people and outward activity','outgoing, assertive and energized by groups','reserved, recharges alone and prefers depth over breadth'],
+  ['A','Agreeableness','Warmth, cooperation and concern for others','cooperative, trusting and quick to help','direct, skeptical and comfortable with conflict'],
+  ['N','Neuroticism','Sensitivity to stress and negative emotion','tense, quick to feel pressure and take setbacks hard','calm, steady and slow to rattle under stress']];
+const b5Tip=([k,n,d,hi,lo],v)=>`${n}: ${d}. Score ${v} (percentile). ${v>=60?'Higher scorers tend to be '+hi:v<=40?'Lower scorers tend to be '+lo:'Mid-range: can lean '+hi.split(',')[0]+' or '+lo.split(',')[0]+' depending on the situation'}.`;
+const ADJ={R:'Practical',I:'Analytical',A:'Creative',S:'Supportive',E:'Persuasive',C:'Organized'};
+S.forEach((s,i)=>{
+  const R5=mulberry32(31337+i*577),n5=()=>{let u=0,v=0;while(!u)u=R5();while(!v)v=R5();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)};
+  const sc=s.hol.scores,p=x=>Math.round(clamp(x,2,98));
+  const b5={O:p(50+(sc.A+sc.I-90)*.35+n5()*14),C:p(50+(sc.C-45)*.45+n5()*15),E:p(50+(sc.E+sc.S-90)*.35+n5()*14),
+    A:p(50+(sc.S-45)*.45+n5()*15),N:p(45+n5()*18)};
+  const hi=k=>b5[k]>=50;
+  const solve=hi('O')?(hi('A')?'Humanitarian':'Innovator'):(hi('A')?'Caretaker':'Pragmatist');
+  const motive=hi('C')?(hi('E')?'Ambitious':'Dutiful'):(hi('E')?'Excitable':'Casual');
+  const relate=hi('E')?(hi('A')?'Gregarious':'Dominant'):(hi('A')?'Supportive':'Independent');
+  const team=hi('C')?(hi('A')?'Cooperator':'Taskmaster'):(hi('A')?'Empath':'Improviser');
+  const NOUN={Humanitarian:'Idealist',Innovator:'Innovator',Caretaker:'Caretaker',Pragmatist:'Pragmatist'};
+  s.cpp={b5,type:ADJ[s.hol.code[0]]+' '+NOUN[solve],styles:[
+    ['How they solve problems',solve,'Openness × Agreeableness'],['What motivates them',motive,'Conscientiousness × Extraversion'],
+    ['How they relate to others',relate,'Extraversion × Agreeableness'],['Team role',team,'Conscientiousness × Agreeableness']]};
+});
+/* Geographic openness. Metros are suggested from where the student's track employers hire (MLT's view, ranked by
+   number of track employers there, with a nudge for the student's home region); the student then grades each 1 to 5. */
+const METROS={
+  'New York City':{st:['NY','NJ'],rg:'Northeast'},'Boston':{st:['MA'],rg:'Northeast'},'Chicago':{st:['IL'],rg:'Midwest'},
+  'Cincinnati':{st:['OH'],rg:'Midwest'},'Twin Cities & Rochester, MN':{st:['MN'],rg:'Midwest'},'Charlotte':{st:['NC'],rg:'South'},
+  'Atlanta':{st:['GA'],rg:'South'},'Dallas–Fort Worth':{st:['TX'],rg:'South'},'Austin':{st:['TX'],rg:'South'},
+  'Washington, DC':{st:['DC','MD','VA'],rg:'South'},'Baltimore':{st:['MD'],rg:'South'},
+  'San Francisco Bay Area':{st:['CA'],rg:'West'},'Los Angeles':{st:['CA'],rg:'West'},'Seattle':{st:['WA'],rg:'West'}
+};
+/* where each employer has major early-career hiring (approximate, for suggestions only) */
+const EMPLOC={
+  'Goldman Sachs':['New York City','Dallas–Fort Worth'],'Morgan Stanley':['New York City'],'JPMorgan Chase':['New York City','Chicago','Dallas–Fort Worth'],
+  'BlackRock':['New York City','San Francisco Bay Area'],'Bank of America':['Charlotte','New York City'],
+  'McKinsey & Company':['New York City','Chicago','Atlanta','Washington, DC','Boston','Dallas–Fort Worth'],'Boston Consulting Group':['Boston','New York City','Chicago'],
+  'Bain & Company':['Boston','San Francisco Bay Area','Chicago','Atlanta','Dallas–Fort Worth'],'Deloitte':['New York City','Chicago','Atlanta','Washington, DC'],
+  'Accenture':['Chicago','New York City','Atlanta','Washington, DC'],
+  'Procter & Gamble':['Cincinnati'],'PepsiCo':['New York City','Dallas–Fort Worth'],'Johnson & Johnson':['New York City'],'Amazon':['Seattle'],'Target':['Twin Cities & Rochester, MN'],
+  'Google':['San Francisco Bay Area','New York City','Seattle','Austin','Atlanta'],'Meta':['San Francisco Bay Area','New York City','Seattle'],'Microsoft':['Seattle'],
+  'Salesforce':['San Francisco Bay Area'],'Capital One':['Washington, DC','New York City'],
+  'Mayo Clinic':['Twin Cities & Rochester, MN'],'Johns Hopkins Medicine':['Baltimore'],'Kaiser Permanente':['San Francisco Bay Area','Los Angeles'],
+  'Genentech':['San Francisco Bay Area'],'Pfizer':['New York City'],'UnitedHealth Group':['Twin Cities & Rochester, MN'],
+  'Netflix':['Los Angeles','San Francisco Bay Area'],'The Walt Disney Company':['Los Angeles'],'NBCUniversal':['New York City','Los Angeles'],
+  'The New York Times':['New York City'],'Edelman':['Chicago','New York City'],'Weber Shandwick':['New York City']
+};
+const STATE_RG={GA:'South',TX:'South',IL:'Midwest',NJ:'Northeast',CA:'West',TN:'South',AZ:'West',NY:'Northeast',MD:'South',NC:'South',MI:'Midwest',NM:'West'};
+const APPEAL=['','Not appealing','Low appeal','Neutral','Appealing','Very appealing'];
+S.forEach((s,i)=>{
+  const R4=mulberry32(55117+i*389),n4=()=>{let u=0,v=0;while(!u)u=R4();while(!v)v=R4();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)};
+  const hst=homeState(s),hrg=STATE_RG[hst]||'South';
+  const tally={};
+  FUNCS[s.pf].emp.forEach(([e])=>(EMPLOC[e]||[]).forEach(m=>{(tally[m]=tally[m]||[]).push(e)}));
+  const ranked=Object.entries(tally).map(([m,es])=>({m,es,near:METROS[m].st.includes(hst)?'state':METROS[m].rg===hrg?'region':'',
+    sc:es.length*10+(METROS[m].st.includes(hst)?6:METROS[m].rg===hrg?4:0)+R4()})).sort((a,b)=>b.sc-a.sc).slice(0,5);
+  /* lower mobility for large households or a head of household out of work */
+  const mob=n4()*.8-(s.hh>=6?.5:0)-(s.hoh.k==='hoh-flag'?.4:0);
+  ranked.forEach(r=>{r.grade=R4()<.08?null:Math.round(clamp(3+mob+(r.near==='state'?1.1:r.near==='region'?.6:0)+n4()*.9,1,5))});
+  const rated=ranked.filter(r=>r.grade);
+  const net=rated.length?Math.round((rated.filter(r=>r.grade>=4).length-rated.filter(r=>r.grade<=2).length)/rated.length*100):null;
+  s.geo={metros:ranked,net,hrg,label:net===null?'Not yet rated':net>=40?'Open to relocating':net>=0?'Selective':'Prefers to stay close'};
+});
+/* 18-digit applicant ID per student (first digit never 0), from its own seeded generator */
+S.forEach((s,i)=>{const R3=mulberry32(918273+i*7919);let id=String(1+Math.floor(R3()*9));while(id.length<18)id+=Math.floor(R3()*10);const[f0,...l0]=s.name.split(' '),lt=w=>w.normalize('NFD').replace(/[^A-Za-z]/g,'').toUpperCase();s.appId=(lt(f0).slice(0,2)+lt(l0.join(''))[0])+id.slice(3)});
+/* Coach flag for "Neither" fit: suggest a major whose RIASEC code matches the student's interests,
+   or a track related to the current major where the student's ratings sit closest to the benchmark */
+function coachSuggestion(s){
+  const first='{FIRST}';
+  const bm=MAJORS.filter(([m])=>m!==s.major).map(([m,c])=>({m,c,fit:congruence(s.hol.code,c)})).sort((a,b)=>b.fit-a.fit)[0];
+  const major={text:`Examine changing major to ${bm.m}`,
+    why:`${first}'s top interest areas (${areaNames(s.hol.code,2).join(', ')}) match ${bm.m} (${areaNames(bm.c,2).join(', ')}) at ${bm.fit} interest-fit, compared with ${s.interestFit} for ${s.major}.`};
+  const alts=MAJORFN[s.major].filter(f=>f!==s.pf).map(f=>({f,r:readiness(s.cur,targets(f))})).sort((a,b)=>a.r.avg-b.r.avg);
+  const path=alts.length?{text:`Examine exploring ${FUNCS[alts[0].f].n}`,
+    why:`Among ${s.major} career tracks, this is ${first}'s closest skill match: ${alts[0].r.met} of 6 benchmarks met, ${alts[0].r.avg} points short on average (vs. ${s.ready.avg} for ${FUNCS[s.pf].n}).`}:null;
+  /* lead with a major change only when it would clear the interest-fit threshold by a real margin */
+  const majorFirst=!path||(bm.fit>=55&&bm.fit>=s.interestFit+10);
+  return majorFirst?{primary:major,alt:path}:{primary:path,alt:major};
+}
+S.forEach(s=>{if(s.quad==='Neither')s.coach=coachSuggestion(s)});
+function coachHTML(s){
+  const c=s.coach;
+  return `<div class="coach">
+    <div class="ch">⚑ Coach flag · Major fit is “Neither”</div>
+    <div class="cs1">${c.primary.text}</div>
+    <div class="cw">${c.primary.why.replace(/{FIRST}/g,fn1(s))}</div>
+    ${c.alt?`<div class="calt"><b>Also consider:</b> ${c.alt.text}. <span>${c.alt.why.replace(/{FIRST}/g,fn1(s))}</span></div>`:''}
+    <div class="cnote">A prompt for a coaching conversation, not a recommendation to act on without talking with the student.</div>
+  </div>`;
+}
+/* expected OVR given opportunity: OLS across the pool */
+(function(){const n=S.length,mx=S.reduce((a,s)=>a+s.opp,0)/n,my=S.reduce((a,s)=>a+s.ovr,0)/n;
+  let sxy=0,sxx=0;S.forEach(s=>{sxy+=(s.opp-mx)*(s.ovr-my);sxx+=(s.opp-mx)**2});
+  const b=sxy/sxx,a=my-b*mx;window.REG={a,b};S.forEach(s=>{s.exp_ovr=a+b*s.opp;s.dist=+(s.ovr-s.exp_ovr).toFixed(1);s.wind=+((s.opp-50)/50*3).toFixed(1)})})();
+
+/* Hidden alumni pool: past participants with the same profile fields as applicants (ratings at application, track,
+   interest code, Big Five, opportunity) plus internship and full-time outcomes. Not shown on the board; used only to
+   surface comparable alumni in a student's profile. Own seeded generator so the applicant sample stays the same. */
+// role titles by employer industry: [internship title, matching full-time title]
+const ROLE={
+  'Investment banking':[['Investment Banking Summer Analyst','Investment Banking Analyst'],['Global Markets Summer Analyst','Global Markets Analyst']],
+  'Banking':[['Corporate Banking Summer Analyst','Corporate Banking Analyst'],['Commercial Banking Summer Analyst','Commercial Banking Analyst']],
+  'Asset management':[['Investments Summer Analyst','Investment Analyst'],['Portfolio Analytics Summer Analyst','Portfolio Analyst']],
+  'Strategy consulting':[['Summer Business Analyst','Business Analyst'],['Summer Associate Consultant','Associate Consultant']],
+  'Professional services':[['Consulting Summer Scholar','Consulting Analyst'],['Technology Consulting Intern','Technology Analyst']],
+  'Consumer goods':[['Brand Management Intern','Assistant Brand Manager'],['Supply Chain Intern','Supply Chain Planner']],
+  'Healthcare products':[['Finance Leadership Intern','Finance Leadership Program Analyst'],['Marketing Intern','Associate Marketing Manager']],
+  'Technology & retail':[['Operations Management Intern','Area Manager'],['Product Management Intern','Associate Product Manager']],
+  'Retail':[['Merchandising Intern','Merchandising Business Analyst'],['Store Leadership Intern','Executive Team Leader']],
+  'Technology':[['Software Engineering Intern','Software Engineer'],['Product Management Intern','Associate Product Manager'],['Data Science Intern','Data Scientist']],
+  'Financial services':[['Technology Intern','Associate Software Engineer'],['Data Analyst Intern','Data Analyst']],
+  'Health systems':[['Healthcare Administration Intern','Administrative Fellow'],['Clinical Research Intern','Clinical Research Coordinator']],
+  'Pharma & biotech':[['Commercial Operations Intern','Commercial Operations Associate'],['Research Intern','Research Associate']],
+  'Health insurance':[['Health Analytics Intern','Health Economics Analyst'],['Rotation Program Intern','Rotation Program Associate']],
+  'Media & entertainment':[['Content Strategy Intern','Content Strategy Associate'],['Production Intern','Production Coordinator'],['Marketing Communications Intern','Marketing Coordinator']],
+  'News media':[['Editorial Fellow','News Assistant'],['Audience Growth Intern','Audience Strategist']],
+  'Public relations':[['Public Relations Intern','Account Executive'],['Corporate Communications Intern','Assistant Account Executive']]
+};
+const ALUMNI=(()=>{
+  const R6=mulberry32(424242),u=(a,b)=>a+R6()*(b-a),pk=a=>a[Math.floor(R6()*a.length)],
+    n6=()=>{let x=0,y=0;while(!x)x=R6();while(!y)y=R6();return Math.sqrt(-2*Math.log(x))*Math.cos(2*Math.PI*y)};
+  const hol=()=>{const f=Math.floor(R6()*6),s=(f+(R6()<.5?1:5))%6;let t;do{t=Math.floor(R6()*6)}while(t===f||t===s);
+    const sc={};HEX.forEach(h=>sc[h]=Math.round(u(18,48)));sc[HEX[f]]=Math.round(u(80,94));sc[HEX[s]]=Math.round(u(66,79));sc[HEX[t]]=Math.round(u(54,65));
+    return {code:HEX[f]+HEX[s]+HEX[t],scores:sc}};
+  /* employer pick weighted toward employers whose benchmark the alum's ratings clear */
+  const land=(f,cur)=>{const E=FUNCS[f].emp,w=E.map(e=>Math.exp(-readiness(cur,targets(f,e[2])).avg/3)+.05);
+    let r=R6()*w.reduce((a,b)=>a+b,0);for(let i=0;i<E.length;i++){r-=w[i];if(r<=0)return E[i]}return E[E.length-1]};
+  const NOUN={Humanitarian:'Idealist',Innovator:'Innovator',Caretaker:'Caretaker',Pragmatist:'Pragmatist'};
+  return Array.from({length:600},()=>{
+    const [major,mcode]=pk(MAJORS),h=hol(),talent=n6(),opp=Math.round(u(8,92));
+    const cur={};DIMS.forEach(d=>cur[d.k]=Math.round(clamp(60+6*talent+.11*(opp-50)+n6()*5,40,96)));
+    const ovr=Math.round(DIMS.reduce((a,d)=>a+cur[d.k],0)/6);
+    const fns=MAJORFN[major].map(f=>({f,s:congruence(h.code,FUNCS[f].code)+u(0,25)})).sort((a,b)=>b.s-a.s).map(x=>x.f);
+    const pf=fns[0],sf=fns[1]||null,sc=h.scores,p=x=>Math.round(clamp(x,2,98));
+    const b5={O:p(50+(sc.A+sc.I-90)*.35+n6()*14),C:p(50+(sc.C-45)*.45+n6()*15),E:p(50+(sc.E+sc.S-90)*.35+n6()*14),A:p(50+(sc.S-45)*.45+n6()*15),N:p(45+n6()*18)};
+    const solve=b5.O>=50?(b5.A>=50?'Humanitarian':'Innovator'):(b5.A>=50?'Caretaker':'Pragmatist');
+    const ie=land(pf,cur),ir=Math.floor(R6()*ROLE[ie[1]].length);
+    /* return offers are likelier for higher-rated alumni; otherwise a fresh search, mostly within the primary track */
+    let ft;
+    if(R6()<clamp(.5+(ovr-70)/60,.25,.85))ft={e:ie[0],t:ROLE[ie[1]][ir][1],ret:true};
+    else{const fe=land(sf&&R6()<.25?sf:pf,cur);ft={e:fe[0],t:pk(ROLE[fe[1]])[1],ret:fe[0]===ie[0]}}
+    return {name:pk(FIRST)+' '+pk(LAST),school:pk(SCHOOLS),major,grad:2019+Math.floor(R6()*7),pf,sf,cur,ovr,opp,b5,
+      code:h.code,type:ADJ[h.code[0]]+' '+NOUN[solve],intern:{e:ie[0],t:ROLE[ie[1]][ir][0]},ft};
+  });
+})();
+/* relevancy 0 to 100: weighted similarity to the student across the same fields */
+const REL_W={ratings:.30,track:.25,personality:.15,interests:.10,opportunity:.10,major:.10};
+/* similar majors earn half credit (listed both ways) */
+const SIMILAR_MAJOR={"Computer Science":["Mechanical Engineering"],"Mechanical Engineering":["Computer Science"],
+  "Economics":["Accounting","Business Administration","Political Science"],"Accounting":["Economics","Business Administration"],
+  "Business Administration":["Economics","Accounting","Marketing"],"Marketing":["Business Administration"],
+  "Biology":["Nursing"],"Nursing":["Biology"],"Psychology":["Sociology"],"Sociology":["Psychology","Political Science"],
+  "Political Science":["Economics","Sociology","English"],"English":["Political Science"]};
+function alumniComps(s,n=5){
+  return ALUMNI.map(a=>{
+    const rd=DIMS.reduce((t,d)=>t+Math.abs(s.cur[d.k]-a.cur[d.k]),0)/6;
+    const parts={
+      ratings:Math.max(0,1-rd/15),
+      track:a.pf===s.pf?1:(a.pf===s.sf||a.sf===s.pf)?.5:0,
+      personality:Math.max(0,1-B5.reduce((t,[k])=>t+Math.abs(s.cpp.b5[k]-a.b5[k]),0)/5/40),
+      interests:congruence(s.hol.code,a.code)/100,
+      opportunity:Math.max(0,1-Math.abs(s.opp-a.opp)/50),
+      major:a.major===s.major?1:(SIMILAR_MAJOR[s.major]||[]).includes(a.major)?.5:0};
+    return {a,parts,rel:Math.round(Object.keys(REL_W).reduce((t,k)=>t+REL_W[k]*parts[k],0)*100)};
+  }).sort((x,y)=>y.rel-x.rel).slice(0,n);
+}
+
+/* ---------- helpers ---------- */
+function rtStyle(v){
+  if(v>=90)return'background:#104281;color:#fff';
+  if(v>=80)return'background:#1c5cab;color:#fff';
+  if(v>=70)return'background:#2a78d6;color:#fff';
+  if(v>=60)return'background:#9ec5f4;color:#0b0b0b';
+  return'background:#e4eefb;color:#0b0b0b';
+}
+const TRAITS={Elite:'★★★',Star:'★★',Impact:'★',Normal:'–'};
+function windHTML(w){const head=w<0;return `<span class="wind ${head?'head':'tail'}" title="${head?'Headwind: less opportunity to date':'Tailwind: more opportunity to date'}"><span class="ar">${head?'←':'→'}</span>${w>0?'+':''}${w.toFixed(1)}</span>`}
+function distHTML(d){return `<span class="dlt ${d>=0?'pos':'neg'}">${d>=0?'+':'−'}${Math.abs(d).toFixed(1)}</span>`}
+const money=k=>'$'+k.toLocaleString()+'k';
+
+/* ---------- KPIs ---------- */
+function renderKpis(list){
+  const med=a=>{const s=[...a].sort((x,y)=>x-y);return s.length?s[Math.floor(s.length/2)]:0};
+  const fg=list.filter(s=>s.firstGen).length, out=list.filter(s=>s.dist>=3).length, both=list.filter(s=>s.quad==='Both').length;
+  document.getElementById('kpis').innerHTML=[
+    ['Students in view',list.length,'of '+S.length+' in the pool'],
+    ['Median OVR',med(list.map(s=>s.ovr)),'average of six MLT ratings'],
+    ['Outperforming opportunity',out,'3+ points above expected'],
+    ['First-generation',list.length?Math.round(fg/list.length*100)+'%':'–',both+' with a skill + interest fit']
+  ].map(([l,v,n])=>`<div class="kpi"><div class="l">${l}</div><div class="v">${v}</div><div class="n">${n}</div></div>`).join('');
+}
+
+/* ---------- table ---------- */
+const COLS=[
+  {k:'rank',l:'#',t:'Rank in current sort'},
+  {k:'name',l:'Student',cls:'left',t:'Name, college and major'},
+  {k:'tag',l:'Tag',t:'Institution designation (HBCU, HSI) and funding eligibility (outlined)'},
+  {k:'ovr',l:'OVR',t:'Overall: average of the six MLT-graded ratings'},
+  ...DIMS.map((d,i)=>({k:d.k,l:d.ab,t:d.n+': '+d.d,cls:i===0?'groupL':''})),
+  {k:'trait',l:'Growth',cls:'groupL',t:'Growth trait from the first-year record: fall to spring GPA change and credits earned'},
+  {k:'wind',l:'Wind',t:'Opportunity to date as wind (−3 to +3). Headwind = less opportunity'},
+  {k:'dist',l:'+/− Exp',t:'OVR minus the expected OVR for students with similar opportunity'},
+  {k:'quad',l:'Fit',t:'Major fit: skill-fit × interest-fit'},
+  {k:'code',l:'Profile',t:'Career personality type and top interest areas (Truity Career Personality Profiler)'},
+  {k:'track',l:'Track',cls:'groupL',t:'Primary career track the student is targeting'},
+  {k:'gap',l:'To target',t:'Average points short of the MLT benchmark for the primary track (✓ = all six met)'}
+];
+let sortKey='ovr',sortDir=-1,fitF='All',traitF='All',query='',selected=null,anon=false;
+const tagSel=new Set(),trkSel=new Set();
+const tagsOf=s=>[s.school.d,...s.fund.map(f=>f.ab)].filter(Boolean);
+const dn=s=>anon?s.appId:s.name;
+const fn1=s=>anon?'This applicant':s.name.split(' ')[0];
+const SORTVAL={ovr:s=>s.ovr,dist:s=>s.dist,growth:s=>s.trend,opp:s=>s.opp,wind:s=>s.wind,trait:s=>s.trend,name:s=>dn(s),tag:s=>(s.school.d||'zzz')+(9-s.fund.length),quad:s=>['Neither','Interest','Skill','Both'].indexOf(s.quad),code:s=>s.cpp.type,track:s=>FUNCS[s.pf].n,gap:s=>-s.ready.avg};
+DIMS.forEach(d=>SORTVAL[d.k]=s=>s.cur[d.k]);
+
+function filtered(){
+  const q=query.toLowerCase();
+  let l=S.filter(s=>(fitF==='All'||s.quad===fitF)&&(traitF==='All'||s.trait===traitF)&&(tagSel.size===0||tagsOf(s).some(t=>tagSel.has(t)))&&(trkSel.size===0||trkSel.has(s.pf))&&
+    (!q||[anon?'':s.name,s.appId,s.school.n,s.school.d,s.school.st,s.school.u,s.major,s.m2||'',s.minor||'',...s.fund.map(f=>f.n),s.cpp.type,...areaNames(s.hol.code),s.place,s.hsName,FUNCS[s.pf].n,s.sf?FUNCS[s.sf].n:'',s.ind,...FUNCS[s.pf].emp.map(e=>e[0])].join(' ').toLowerCase().includes(q)));
+  const f=SORTVAL[sortKey]||SORTVAL.ovr;
+  l.sort((a,b)=>{const x=f(a),y=f(b);return(typeof x==='string'?x.localeCompare(y):x-y)*sortDir});
+  return l;
+}
+function renderHeader(){
+  document.getElementById('hdr').innerHTML=COLS.map(c=>`<th class="${c.cls||''}" data-k="${c.k}" title="${c.t}">${c.l}${sortKey===c.k?` <span class="arr">${sortDir<0?'▼':'▲'}</span>`:''}</th>`).join('');
+  document.querySelectorAll('#hdr th').forEach(th=>th.onclick=()=>{const k=th.dataset.k;if(k==='rank')return;
+    if(sortKey===k)sortDir*=-1;else{sortKey=k;sortDir=(k==='name'||k==='code'||k==='tag'||k==='track')?1:-1}
+    const opt=[...document.getElementById('sort').options].find(o=>o.value===k);document.getElementById('sort').value=opt?k:'';render()});
+}
+function render(){
+  const l=filtered();
+  renderHeader();renderKpis(l);
+  document.getElementById('rows').innerHTML=l.map((s,i)=>`<tr data-id="${s.id}" class="${selected===s.id?'sel':''}" style="--tc:${FUNCS[s.pf].c};--tink:${FUNCS[s.pf].ink}">
+    <td class="rk">${i+1}</td>
+    <td class="who"><div class="nm">${dn(s)}</div><div class="meta">${s.school.n} · ${s.major}${s.declared?'':' (intended)'}</div></td>
+    <td class="tags">${s.school.d?`<span class="tag">${s.school.d}</span>`:''}${s.fund.map(f=>`<span class="tag fund" title="${f.n}: ${f.crit}">${f.ab}</span>`).join('')}</td>
+    <td><span class="rt ovr" style="${rtStyle(s.ovr)}">${s.ovr}</span></td>
+    ${DIMS.map((d,j)=>`<td class="${j===0?'groupL':''}"><span class="rt" style="${rtStyle(s.cur[d.k])}" title="${d.n}: ${s.cur[d.k]}">${s.cur[d.k]}</span></td>`).join('')}
+    <td class="groupL"><span class="trait">${s.trait}</span> <span class="stars">${TRAITS[s.trait]}</span></td>
+    <td>${windHTML(s.wind)}</td>
+    <td>${distHTML(s.dist)}</td>
+    <td><span class="fitq ${s.quad==='Both'?'both':s.quad==='Neither'?'flag':''}" ${s.coach?`title="Coach flag: ${s.coach.primary.text}"`:''}>${s.quad==='Neither'?'⚑ ':''}${s.quad}</span></td>
+    <td class="cpptd" title="Top interests: ${areaNames(s.hol.code).join(' · ')}"><span class="cppt">${s.cpp.type}</span><span class="cppa">${areaNames(s.hol.code,2).join(' · ')}</span></td>
+    <td class="groupL"><span class="trk" title="${FUNCS[s.pf].n} · ${s.ind}">${FUNCS[s.pf].ab}</span></td>
+    <td>${s.ready.met===6?'<span class="dlt pos">✓</span>':`<span class="dlt neg" title="${s.ready.status}: ${s.ready.met} of 6 benchmarks met">−${s.ready.avg.toFixed(1)}</span>`}</td>
+  </tr>`).join('')||`<tr><td colspan="${COLS.length}" style="padding:30px;color:var(--muted)">No students match these filters.</td></tr>`;
+  document.querySelectorAll('#rows tr[data-id]').forEach(tr=>tr.onclick=()=>openProfile(+tr.dataset.id));
+  drawScatter(l);
+}
+
+/* ---------- filters ---------- */
+function chipGroup(el,opts,get,set){
+  const box=document.getElementById(el);
+  box.innerHTML=opts.map(o=>`<button class="chip" data-v="${o}" aria-pressed="${get()===o}">${o}</button>`).join('');
+  box.querySelectorAll('.chip').forEach(b=>b.onclick=()=>{set(b.dataset.v);box.querySelectorAll('.chip').forEach(x=>x.setAttribute('aria-pressed',x.dataset.v===get()));render()});
+}
+chipGroup('fitChips',['All','Both','Skill','Interest','Neither'],()=>fitF,v=>fitF=v);
+chipGroup('traitChips',['All','Elite','Star','Impact','Normal'],()=>traitF,v=>traitF=v);
+document.getElementById('q').oninput=e=>{query=e.target.value;render()};
+document.getElementById('sort').onchange=e=>{const v=e.target.value;if(!v)return;sortKey=v;sortDir=v==='opp'?1:-1;render()};
+(function(){
+  /* track color key */
+  /* track filter: the color key doubles as toggles; any number can be on, matched on primary track */
+  const tk=document.getElementById('trackKey');
+  tk.innerHTML='<span class="ctl-label">Track</span><button class="chip" data-v="All">All</button>'+Object.entries(FUNCS).map(([k,f])=>`<button class="chip trkchip" data-v="${k}" style="--tc:${f.c};--tink:${f.ink}"><i></i>${f.n} <span class="cnt">${S.filter(s=>s.pf===k).length}</span></button>`).join('');
+  const paintT=()=>tk.querySelectorAll('.chip').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v==='All'?trkSel.size===0:trkSel.has(b.dataset.v)));
+  tk.querySelectorAll('.chip').forEach(b=>b.onclick=()=>{const v=b.dataset.v;if(v==='All')trkSel.clear();else trkSel.has(v)?trkSel.delete(v):trkSel.add(v);paintT();render()});
+  paintT();
+  /* tag toggles: any number can be on; a student shows if they carry at least one active tag */
+  const box=document.getElementById('tagChips');
+  const all=[...['HBCU','HSI'].map(t=>({v:t,l:t,title:'Institution designation',fund:false})),...FUNDERS.map(f=>({v:f.ab,l:f.ab,title:f.n+': '+f.crit,fund:true}))];
+  const count=v=>S.filter(s=>tagsOf(s).includes(v)).length;
+  const paint=()=>{box.querySelectorAll('.chip').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v==='All'?tagSel.size===0:tagSel.has(b.dataset.v)))};
+  box.innerHTML=`<button class="chip" data-v="All">All</button>`+all.map(t=>`<button class="chip tchip${t.fund?' fund':''}" data-v="${t.v}" title="${t.title}">${t.l} <span class="cnt">${count(t.v)}</span></button>`).join('');
+  box.querySelectorAll('.chip').forEach(b=>b.onclick=()=>{const v=b.dataset.v;if(v==='All')tagSel.clear();else tagSel.has(v)?tagSel.delete(v):tagSel.add(v);paint();render()});
+  paint();
+  /* names: shown, or replaced with an 18-digit applicant ID everywhere on the board and in profiles */
+  const nb=document.getElementById('nameChips');
+  nb.innerHTML=['Shown','Anonymized'].map(o=>`<button class="chip" data-v="${o}">${o}</button>`).join('');
+  const paintN=()=>nb.querySelectorAll('.chip').forEach(b=>b.setAttribute('aria-pressed',(b.dataset.v==='Anonymized')===anon));
+  nb.querySelectorAll('.chip').forEach(b=>b.onclick=()=>{anon=b.dataset.v==='Anonymized';paintN();document.body.classList.toggle('anon',anon);render();if(selected!==null)openProfile(selected)});
+  paintN();
+})();
+
+/* ---------- scatter ---------- */
+let lastList=S;
+function drawScatter(list){
+  lastList=list;
+  const box=document.getElementById('scatter'),tip=document.getElementById('tip');
+  const W=box.clientWidth,H=box.clientHeight;if(!W||!H)return;
+  const m={l:36,r:12,t:12,b:34},iw=W-m.l-m.r,ih=H-m.t-m.b;
+  const ys=S.map(s=>s.ovr),y0=Math.floor((Math.min(...ys)-3)/5)*5,y1=Math.ceil((Math.max(...ys)+3)/5)*5;
+  const X=v=>m.l+v/100*iw,Y=v=>m.t+ih-(v-y0)/(y1-y0)*ih;
+  let g='';
+  for(let v=y0;v<=y1;v+=5)g+=`<line x1="${m.l}" x2="${W-m.r}" y1="${Y(v)}" y2="${Y(v)}" stroke="#e1e0d9" stroke-width="1"/><text x="${m.l-6}" y="${Y(v)+4}" text-anchor="end" font-size="11" fill="#898781">${v}</text>`;
+  [0,25,50,75,100].forEach(v=>g+=`<text x="${X(v)}" y="${H-m.b+16}" text-anchor="middle" font-size="11" fill="#898781">${v}</text>`);
+  g+=`<line x1="${m.l}" x2="${W-m.r}" y1="${m.t+ih}" y2="${m.t+ih}" stroke="#c3c2b7"/>`;
+  g+=`<text x="${m.l}" y="${H-4}" font-size="11" fill="#52514e">← Headwind</text><text x="${W-m.r}" y="${H-4}" text-anchor="end" font-size="11" fill="#52514e">Tailwind →</text><text x="${m.l+iw/2}" y="${H-4}" text-anchor="middle" font-size="11" fill="#52514e">Opportunity to date</text>`;
+  const {a,b}=REG;g+=`<line x1="${X(0)}" y1="${Y(a)}" x2="${X(100)}" y2="${Y(a+b*100)}" stroke="#52514e" stroke-width="2" stroke-dasharray="5 4"/>`;
+  const ids=new Set(list.map(s=>s.id));
+  S.forEach(s=>{const on=ids.has(s.id),sel=selected===s.id;
+    g+=`<circle cx="${X(s.opp)}" cy="${Y(s.ovr)}" r="${sel?8:6}" fill="${sel?'#eb6834':on?'#2a78d6':'#d9d8d2'}" stroke="#fcfcfb" stroke-width="2" ${on?'':'opacity=".7"'}/>`;
+    g+=`<circle class="hit" data-id="${s.id}" cx="${X(s.opp)}" cy="${Y(s.ovr)}" r="12" fill="transparent" style="cursor:pointer"/>`});
+  let svg=box.querySelector('svg');if(!svg){svg=document.createElementNS('http://www.w3.org/2000/svg','svg');box.prepend(svg)}
+  svg.setAttribute('width',W);svg.setAttribute('height',H);svg.setAttribute('viewBox',`0 0 ${W} ${H}`);svg.innerHTML=g;
+  svg.querySelectorAll('.hit').forEach(c=>{
+    const s=S[+c.dataset.id];
+    c.onmouseenter=()=>{tip.innerHTML=`<b>${dn(s)}</b><br>OVR ${s.ovr} · opportunity ${s.opp}<br>${s.dist>=0?'+':'−'}${Math.abs(s.dist).toFixed(1)} vs. expected`;tip.style.opacity=1;
+      const cx=+c.getAttribute('cx'),cy=+c.getAttribute('cy');tip.style.left=Math.min(cx+12,W-tip.offsetWidth-4)+'px';tip.style.top=Math.max(cy-50,4)+'px'};
+    c.onmouseleave=()=>tip.style.opacity=0;
+    c.onclick=()=>openProfile(s.id);
+  });
+}
+new ResizeObserver(()=>drawScatter(lastList)).observe(document.getElementById('scatter'));
+
+/* ---------- profile ---------- */
+function cppInterestsHTML(s){
+  const top=s.hol.code;
+  return `<div class="cpp">
+    <div class="cpptype"><div class="l">Career personality type</div><div class="v">${s.cpp.type}</div></div>
+    <div class="cl">Interest areas <span>0–100</span></div>
+    ${HEX.map(h=>{const v=s.hol.scores[h],inStu=top.slice(0,2).includes(h),inMaj=s.mcode.includes(h);
+      return `<div class="ib${inMaj?' maj':''}" title="${CPP[h]}: ${v}${inMaj?' · matches '+s.major:''}"><div class="n">${CPP[h]}${inMaj?' <i>●</i>':''}</div><div class="track"><div class="fill${inStu?'':' lo'}" style="width:${v}%"></div></div><div class="val">${v}</div></div>`}).join('')}
+    <div class="qax" style="text-align:left">Top areas: <b>${areaNames(top,2).join(', ')}</b> · <i style="color:var(--orange);font-style:normal">●</i> = in ${s.major}’s profile</div>
+  </div>`;
+}
+function cppPersonalityHTML(s){
+  const c=s.cpp;
+  return `<div class="cppp">
+    <div class="cl">Personality (Big Five) <span>percentile</span></div>
+    <div class="b5">${B5.map(t=>{const[k,n]=t;return `<div class="bar" title="${b5Tip(t,c.b5[k])}"><div class="n">${n}</div><div class="track"><div class="fill b5f" style="width:${c.b5[k]}%"></div></div><div class="val">${c.b5[k]}</div></div>`}).join('')}</div>
+    <div class="cl" style="margin-top:10px">Work styles</div>
+    <div class="styles">${c.styles.map(([l,v,d])=>`<div class="sty" title="${d}"><div class="l">${l}</div><div class="v">${v}</div></div>`).join('')}</div>
+    <div class="src">Sample scores laid out like a Truity Career Personality Profiler report. The type name and work styles are approximated from the scores here; real values would come from each student’s Truity results.</div>
+  </div>`;
+}
+function hexSVG(s){
+  const W=220,H=220,cx=110,cy=112,r=78;
+  const pt=(i,v)=>{const ang=-Math.PI/2+i*Math.PI/3;return[cx+Math.cos(ang)*r*v,cy+Math.sin(ang)*r*v]};
+  let g='';
+  [.25,.5,.75,1].forEach(f=>g+=`<polygon points="${HEX.map((_,i)=>pt(i,f).join(',')).join(' ')}" fill="none" stroke="#e1e0d9"/>`);
+  HEX.forEach((h,i)=>{const[x,y]=pt(i,1);g+=`<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="#e1e0d9"/>`});
+  g+=`<polygon points="${HEX.map((h,i)=>pt(i,s.hol.scores[h]/100).join(',')).join(' ')}" fill="rgba(42,120,214,.18)" stroke="#2a78d6" stroke-width="2" stroke-linejoin="round"/>`;
+  HEX.forEach((h,i)=>{const[x,y]=pt(i,s.hol.scores[h]/100);g+=`<circle cx="${x}" cy="${y}" r="4" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>${HEXN[h]}: ${s.hol.scores[h]}</title></circle>`;
+    const[lx,ly]=pt(i,1.2);const inMajor=s.mcode.includes(h),inStu=s.hol.code.includes(h);
+    g+=`<text x="${lx}" y="${ly+4}" text-anchor="middle" font-size="13" font-weight="800" fill="${inStu?'#0b0b0b':'#898781'}">${h}</text>`;
+    if(inMajor)g+=`<circle cx="${lx}" cy="${ly}" r="11" fill="none" stroke="#eb6834" stroke-width="2"/>`});
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">${g}</svg>`;
+}
+/* Program rankings by school and major. SAMPLE VALUES for layout only: generated from a seed per school + program,
+   loosely tied to graduation rate. Replace with the ranking source MLT chooses. Regions follow U.S. Census regions. */
+const REGION={DC:'South',GA:'South',NC:'South',FL:'South',MD:'South',TX:'South',NY:'Northeast',NJ:'Northeast',PA:'Northeast',IL:'Midwest',MI:'Midwest',CA:'West'};
+const hashStr=t=>{let h=2166136261;for(const c of t){h^=c.charCodeAt(0);h=Math.imul(h,16777619)}return h>>>0};
+function programRank(school,prog){
+  const r=mulberry32(hashStr(school.u+'|'+prog)),z=(school.g-70)/25+(r()-.5)*1.1;
+  const nat=z>-.35?Math.max(1,Math.round(18*Math.exp(-1.6*z)*(.7+r()*.6))):null;
+  const reg=Math.max(1,Math.round(9*Math.exp(-1.3*z)*(.7+r()*.6)));
+  return {nat:nat&&nat<=150?nat:null,reg:reg<=80?reg:null,region:REGION[school.st]||'Region'};
+}
+function rankHTML(s){
+  const progs=[['Major',s.major],['Second major',s.m2]].filter(p=>p[1]);
+  const cell=(n,scope)=>n?`<span class="rk1"><b>#${n}</b> ${scope}</span>`:`<span class="rk0">Unranked ${scope==='nationally'?'nationally':'in '+scope.replace('in ','')}</span>`;
+  return `<div class="ranks">
+    <div class="rh">Program rankings at ${s.school.n}</div>
+    ${progs.map(([l,p])=>{const r=programRank(s.school,p);return `<div class="rrow"><div class="rp"><span class="l">${l}</span>${p}</div><div>${cell(r.reg,'in the '+r.region)}</div><div>${cell(r.nat,'nationally')}</div></div>`}).join('')}
+    <div class="src">Sample rankings for layout only. Not from a real ranking source.</div>
+  </div>`;
+}
+// Monogram stand-ins for employer logos: [mark, background, text color]
+const LOGO={
+  'Goldman Sachs':['GS','#7399c6','#fff'],'Morgan Stanley':['MS','#002b51','#fff'],'JPMorgan Chase':['JPM','#117aca','#fff'],
+  'BlackRock':['BLK','#000','#fff'],'Bank of America':['BofA','#e31837','#fff'],
+  'McKinsey & Company':['McK','#051c2c','#fff'],'Boston Consulting Group':['BCG','#147b58','#fff'],'Bain & Company':['Bain','#cc0000','#fff'],
+  'Deloitte':['D.','#000','#86bc25'],'Accenture':['acn','#a100ff','#fff'],
+  'Procter & Gamble':['P&G','#003da5','#fff'],'PepsiCo':['PEP','#004b93','#fff'],'Johnson & Johnson':['J&J','#d51900','#fff'],
+  'Amazon':['amzn','#232f3e','#ff9900'],'Target':['TGT','#cc0000','#fff'],
+  'Google':['G','#fff','#4285f4'],'Meta':['Meta','#0866ff','#fff'],'Microsoft':['MSFT','#737373','#fff'],
+  'Salesforce':['sf','#00a1e0','#fff'],'Capital One':['C1','#004977','#fff'],
+  'Mayo Clinic':['Mayo','#0057b8','#fff'],'Johns Hopkins Medicine':['JHM','#002d72','#fff'],'Kaiser Permanente':['KP','#0078b3','#fff'],
+  'Genentech':['GNE','#005596','#fff'],'Pfizer':['PFE','#0000c9','#fff'],'UnitedHealth Group':['UHG','#002677','#fff'],
+  'Netflix':['N','#000','#e50914'],'The Walt Disney Company':['DIS','#113ccf','#fff'],'NBCUniversal':['NBCU','#000','#fff'],
+  'The New York Times':['NYT','#fff','#000'],'Edelman':['Edel','#000','#fff'],'Weber Shandwick':['WS','#e4002b','#fff']
+};
+function logoHTML(e){
+  const[m,bg,fg]=LOGO[e]||[e.split(/\s+/).map(w=>w[0]).join('').slice(0,3),'#52514e','#fff'];
+  return `<span class="lg" title="${e}" style="background:${bg};color:${fg}">${m}</span>`;
+}
+function geoHTML(s){
+  const g=s.geo;
+  const pips=n=>[1,2,3,4,5].map(k=>`<i class="${n&&k<=n?'on':''}"></i>`).join('');
+  return `<div class="geo">
+    <div class="gh">
+      <div><div class="gt">Geographic openness</div><div class="gs">Metros MLT suggests for ${FUNCS[s.pf].n}, graded by the student (1 to 5)</div></div>
+      <div class="gnet"><div class="v">${g.net===null?'—':(g.net>0?'+':'')+g.net}</div><div class="l">Net openness</div><div class="gl">${g.label}</div></div>
+    </div>
+    <table class="geot"><thead><tr><th>Suggested metro</th><th class="gn">Track employer partners</th><th class="gw">Why</th><th>Student’s grade</th></tr></thead><tbody>
+    ${g.metros.map(r=>`<tr><td class="gm">${r.m}${r.near==='state'?' <span class="near">Home state</span>':r.near==='region'?' <span class="near">Home region</span>':''}</td>
+      <td class="gn">${r.es.length}</td>
+      <td class="gw">${r.es.map(logoHTML).join('')}</td>
+      <td class="gg">${r.grade?`<span class="pips g${r.grade}">${pips(r.grade)}</span> ${APPEAL[r.grade]}`:'<span class="ng">Not yet rated</span>'}</td></tr>`).join('')}
+    </tbody></table>
+    <div class="src">Net openness = share of rated metros graded 4–5 minus share graded 1–2 (−100 to +100). Employer locations are approximate. Grades are sample data.</div>
+  </div>`;
+}
+function careerHTML(s){
+  const F=FUNCS[s.pf],tg=targets(s.pf);
+  const gaps=DIMS.map(d=>({d,g:tg[d.k]-s.cur[d.k]})).filter(x=>x.g>0).sort((a,b)=>b.g-a.g).slice(0,2);
+  const emps=[...F.emp].sort((a,b)=>(b[1]===s.ind)-(a[1]===s.ind)||b[2]-a[2]);
+  const rows=emps.map(([n,ind,adj])=>{const r=readiness(s.cur,targets(s.pf,adj));
+    return `<tr class="${ind===s.ind?'hl':''}"><td class="en">${n}</td><td class="ei">${ind}</td><td><span class="rt" style="${rtStyle(r.tOvr)}">${r.tOvr}</span></td><td>${r.met}/6</td><td><span class="st st-${r.status.split(' ')[0].toLowerCase()}">${r.status}</span></td></tr>`}).join('');
+  return `<div class="sec">
+      <h3>Career interests &amp; employer targets <small>Benchmarks for junior-summer internship recruiting</small></h3>
+      <div class="ints">
+        <div class="int" style="background:${F.c};color:${F.ink}"><div class="l" style="color:${F.ink};opacity:.8">Primary track</div><div class="v">${F.n}</div></div>
+        <div class="int"><div class="l">Primary industry</div><div class="v">${s.ind}</div></div>
+        <div class="int"><div class="l">Secondary track</div><div class="v">${s.sf?FUNCS[s.sf].n:'None'}</div></div>
+      </div>
+      <div class="cs" style="margin:10px 0 4px">MLT-graded ratings (graded at application) vs. the ${F.n.toLowerCase()} benchmark. Orange tick = target.</div>
+      ${DIMS.map(d=>`<div class="bar" title="${d.d}"><div class="n">${d.n}</div><div class="track"><div class="fill" style="width:${s.cur[d.k]}%"></div><div class="target" style="left:${tg[d.k]}%"></div></div><div class="val">${s.cur[d.k]} <span class="${tg[d.k]-s.cur[d.k]>0?'gapneg':''}">${tg[d.k]-s.cur[d.k]>0?'−'+(tg[d.k]-s.cur[d.k]):'✓'}</span></div></div>`).join('')}
+      ${gaps.length?`<p class="focus"><b>Development focus:</b> ${gaps.map(x=>`${x.d.n} (+${x.g} needed)`).join(' and ')}.</p>`:`<p class="focus"><b>Meets all six benchmarks</b> for this track.</p>`}
+      <table class="emp"><thead><tr><th>Top employers for this role</th><th>Industry</th><th>Target OVR</th><th>Met</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table>
+      <div class="src">Employers highlighted in blue match the student's primary industry. They are well-known recruiters for this role, not ranked by hiring volume. Target ratings are illustrative MLT benchmarks for MLT to calibrate, not requirements published by these employers.</div>
+      ${geoHTML(s)}
+    </div>`;
+}
+/* collapsible profile sections; which sections are closed is remembered across students */
+const CLOSED=new Set();
+function enhanceSections(){
+  const card=document.querySelector('#drawer .pcard');if(!card)return;
+  const secs=[...card.querySelectorAll('.sec')];
+  const keyOf=sec=>sec.dataset.key;
+  const set=(sec,closed)=>{sec.classList.toggle('collapsed',closed);sec.querySelector('h3').setAttribute('aria-expanded',!closed);closed?CLOSED.add(keyOf(sec)):CLOSED.delete(keyOf(sec))};
+  secs.forEach(sec=>{
+    const h=sec.querySelector('h3');
+    sec.dataset.key=h.childNodes[0].textContent.trim();
+    h.setAttribute('role','button');h.tabIndex=0;h.insertAdjacentHTML('afterbegin','<span class="chev" aria-hidden="true">▾</span>');
+    set(sec,CLOSED.has(keyOf(sec)));
+    const toggle=()=>set(sec,!sec.classList.contains('collapsed'));
+    h.onclick=e=>{if(e.target.closest('a'))return;toggle()};h.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();toggle()}};
+  });
+  const bar=document.createElement('div');bar.className='secbar';
+  bar.innerHTML='<button type="button" data-a="0">Expand all</button><button type="button" data-a="1">Collapse all</button>';
+  bar.querySelectorAll('button').forEach(b=>b.onclick=()=>secs.forEach(sec=>set(sec,b.dataset.a==='1')));
+  secs[0].before(bar);
+}
+function alumniHTML(s){
+  const rows=alumniComps(s);
+  const job=(e,t)=>`<div class="aj">${logoHTML(e)}<span>${t}</span></div>`;
+  const pct=v=>Math.round(v*100);
+  return `<div class="sec">
+      <h3>Comparable alumni <small>${rows.length} closest past profiles</small></h3>
+      <table class="alum"><thead><tr><th>Alum</th><th class="arl">Relevancy</th><th>Internship</th><th>Full-time job</th></tr></thead><tbody>
+      ${rows.map(({a,parts,rel})=>{const F=FUNCS[a.pf];
+        return `<tr><td><div class="an">${a.name} <span class="trk" style="--tc:${F.c};--tink:${F.ink}">${F.ab}</span></div>
+          <div class="as">${a.school.n} · Class of ${a.grad}</div>
+          <div class="as">${a.major} · ${a.type}</div></td>
+        <td class="arl" title="Ratings ${pct(parts.ratings)} · Track ${pct(parts.track)} · Big Five ${pct(parts.personality)} · Interests ${pct(parts.interests)} · Opportunity ${pct(parts.opportunity)} · Major ${parts.major===1?'same':parts.major?'similar':'different'}"><b>${rel}</b><div class="relb"><i style="width:${rel}%"></i></div></td>
+        <td>${job(a.intern.e,a.intern.t)}</td>
+        <td>${job(a.ft.e,a.ft.t)}${a.ft.ret?'<span class="near">Return offer</span>':''}</td></tr>`}).join('')}
+      </tbody></table>
+      <div class="src">Relevancy (0 to 100) weights MLT-graded ratings 30%, track 25%, Big Five 15%, interest code 10%, opportunity index 10% and major 10% (half credit for a similar major). Hover a score for the breakdown. Alumni and outcomes are sample data.</div>
+    </div>`;
+}
+function openProfile(id){
+  selected=id;const s=S[id];
+  const kv=(k,v)=>`<div class="kv"><span>${k}</span><span>${v}</span></div>`;
+  const windPos=(s.wind+3)/6*100;
+  document.getElementById('drawer').innerHTML=`
+  <div class="pcard">
+    <div class="phead">
+      <button class="close" id="closeBtn" aria-label="Close">×</button>
+      <div>
+        <div class="eyebrow">${s.school.n} · ${s.major}${s.declared?'':' (intended)'} · Class of ${GRAD_YEAR}</div>
+        <h2 class="pname">${dn(s)}</h2>
+        <div class="meta">Home area: ${s.place}<br>Archetype: <b>${s.cpp.type}</b></div>
+      </div>
+      <div class="bigovr"><span class="rt" style="${rtStyle(s.ovr)}">${s.ovr}</span><div class="l">OVR</div></div>
+    </div>
+    <div class="badges">
+      ${s.school.d?`<div class="badge"><div class="l">Designation</div><div class="v"><span class="tag">${s.school.d}</span></div></div>`:''}
+      ${s.fund.length?s.fund.map(f=>`<div class="badge fundb"><div class="l">Funding eligible</div><div class="v"><span class="tag fund">${f.ab}</span> ${f.n}</div><div class="fc">${f.crit}</div></div>`).join(''):''}
+      <div class="badge"><div class="l">Growth trait</div><div class="v">${s.trait} <span class="stars">${TRAITS[s.trait]}</span></div></div>
+      <div class="badge"><div class="l">First-year GPA</div><div class="v">${s.fallGpa.toFixed(2)} → ${s.springGpa.toFixed(2)} <span style="color:${s.springGpa>=s.fallGpa?'#006300':'#52514e'}">(${s.springGpa>=s.fallGpa?'+':'−'}${Math.abs(s.springGpa-s.fallGpa).toFixed(2)})</span></div></div>
+      <div class="badge"><div class="l">Wind</div><div class="v">${windHTML(s.wind)}</div></div>
+      <div class="badge"><div class="l">Vs. expected</div><div class="v">${distHTML(s.dist)}</div></div>
+      <div class="badge"><div class="l">Major fit</div><div class="v">${s.quad}</div></div>
+    </div>
+    <div class="sec">
+      <h3>Interests &amp; major fit <small>Career Personality Profiler · highlighted = matches primary major</small></h3>
+      <div class="progs">
+        ${[['Major',s.major,s.declared?'Declared':'Intended'],['Second major',s.m2,'Declared'],['Minor',s.minor,'Declared']].map(([l,p,st],i)=>p?`<div class="prog${i===0?' main':''}"><div class="l">${l} · ${st}</div><div class="v">${p}</div><div class="pc">${areaNames(PCODE[p],2).join(' + ')} · ${congruence(s.hol.code,PCODE[p])} interest-fit</div></div>`:`<div class="prog none"><div class="l">${l}</div><div class="v">None</div><div class="pc">—</div></div>`).join('')}
+      </div>
+      ${s.coach?coachHTML(s):''}
+      <div class="two">
+        <div>
+          ${cppInterestsHTML(s)}
+        </div>
+        <div>
+          <div class="quad">
+            <div class="${s.quad==='Interest'?'on':''}">Interest only</div><div class="${s.quad==='Both'?'on':''}">Both</div>
+            <div class="${s.quad==='Neither'?'on':''}">Neither</div><div class="${s.quad==='Skill'?'on':''}">Skill only</div>
+            <span class="dot" style="left:${Math.min(97,Math.max(3,s.skillFit))}%;bottom:${Math.min(97,Math.max(3,s.interestFit))}%" title="Skill-fit ${s.skillFit}, interest-fit ${s.interestFit}"></span>
+          </div>
+          <div class="qax">→ Skill-fit ${s.skillFit} · ↑ Interest-fit ${s.interestFit} · lines at 55</div>
+          <div style="margin-top:10px">${kv('Major-course GPA',s.majorGpa.toFixed(2))}${kv('Overall GPA',s.gpa.toFixed(2))}${kv('Self-rated ability in major',s.selfAbility+' / 5')}</div>
+        </div>
+      </div>
+      ${cppPersonalityHTML(s)}
+    </div>
+    ${careerHTML(s)}
+    <div class="sec">
+      <h3>Institution <small>IPEDS / College Scorecard · <a href="${s.school.url}" target="_blank" rel="noopener" style="color:var(--b550)">View record</a></small></h3>
+      <div class="inst">
+        <div class="stat"><div class="l">Graduation rate</div><div class="v">${s.school.g}%</div><div class="n">within 6 years (150% time)</div><div class="meter"><i style="width:${s.school.g}%"></i></div></div>
+        <div class="stat"><div class="l">Average net price</div><div class="v">$${s.school.np.toLocaleString()}</div><div class="n">per year, aided first-years${s.school.c==='Public'?' (in-state)':''}</div></div>
+        <div class="stat"><div class="l">Pell recipients</div><div class="v">${s.school.pell}%</div><div class="n">of undergraduates</div><div class="meter"><i style="width:${s.school.pell}%"></i></div></div>
+      </div>
+      <div class="src">Graduation rate: fall 2019 entering cohort. Net price: 2024–25. Pell share: IPEDS 2024–25 collection.</div>
+      ${rankHTML(s)}
+    </div>
+    <div class="sec">
+      <h3>Opportunity to date <small>Index ${s.opp} / 100</small></h3>
+      <div class="windbar"><i style="left:${windPos}%"></i></div>
+      <div class="windlab"><span>← Strong headwind (−3.0)</span><span>Calm</span><span>Strong tailwind (+3.0) →</span></div>
+      <div class="ctx" style="margin-top:12px">
+        <div class="box"><h4>Place</h4>${kv('Child Opportunity Index',s.coi)}${kv('Economic connectedness',s.ec+'th pct')}${kv('Home area',s.place.split(',')[0])}${kv('High school',s.hsName)}${kv('HS Performance Index',`${s.hpi} <span class="hpi-of">/ 100</span>`)}</div>
+        <div class="box"><h4>Education</h4>${kv('AP/IB taken',`${s.apTake} of ${s.apOff} offered`)}<div class="meter" title="${s.apPct}% of offered AP/IB courses taken"><i style="width:${s.apPct}%"></i></div>${kv('Share taken',s.apPct+'%')}${kv('Transfer credits in',s.transfer+' credits'+(s.dual?` (${s.dual} dual enrollment)`:''))}${kv(s.test.t==='None'?'SAT / ACT':s.test.t,s.test.v)}${kv('Test prep access',s.prepHours?s.prepHours+' hrs':'None')}${kv('College credits, first year',s.credits)}</div>
+        <div class="box"><h4>Family &amp; finances</h4>${kv('First-gen',s.firstGen?'Yes':'No')}${kv('Parent education',s.parentEd)}${kv('Family income',money(s.income))}${kv('Household size',s.hh+' people')}${kv('Head of household work',`<span class="${s.hoh.k}">${s.hoh.v}</span>`)}${kv('Pell eligible',s.pell?'Yes':'No')}${kv('Loans, first year',money(s.loans))}${kv('Paid work / week',s.hours+' hrs')}</div>
+      </div>
+    </div>
+    <div class="sec">
+      <h3>Experience inventory <small>${s.expN} of ${EXP.length} · student-reported</small></h3>
+      <div class="exp">${EXP.map(([k,l])=>`<div><span class="${s.exp[k]?'y':'x'}">${s.exp[k]?'✓':'—'}</span><span class="${s.exp[k]?'':'no'}">${l}</span></div>`).join('')}</div>
+    </div>
+    ${alumniHTML(s)}
+  </div>
+  <p class="caveat"><b>Context explains ratings; it doesn't change them.</b> Use wind and opportunity to understand a student's path and plan support. Don't use them to lower or raise individual scores.</p>`;
+  document.getElementById('drawer').classList.add('on');document.getElementById('scrim').classList.add('on');
+  enhanceSections();
+  document.getElementById('closeBtn').onclick=closeProfile;
+  render();
+}
+function closeProfile(){document.getElementById('drawer').classList.remove('on');document.getElementById('scrim').classList.remove('on');selected=null;render()}
+document.getElementById('scrim').onclick=closeProfile;
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeProfile()});
+
+render();
+</script>
+</body>
+</html>
